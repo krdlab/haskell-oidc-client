@@ -1,5 +1,9 @@
 {-# LANGUAGE OverloadedStrings #-}
-
+{-|
+Module: Web.OIDC.Types
+Maintainer: krdlab@gmail.com
+Stability: experimental
+-}
 module Web.OIDC.Types
     ( Scope
     , ScopeValue(..)

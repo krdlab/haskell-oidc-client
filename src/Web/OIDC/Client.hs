@@ -1,5 +1,9 @@
 {-# LANGUAGE OverloadedStrings #-}
-
+{-|
+Module: Web.OIDC.Client
+Maintainer: krdlab@gmail.com
+Stability: experimental
+-}
 module Web.OIDC.Client
     ( getAuthenticationRequestUrl
     , requestTokens

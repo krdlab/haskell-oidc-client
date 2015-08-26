@@ -1,15 +1,15 @@
 name:               oidc-client
 version:            0.1.0.0
-synopsis:           OpenID Connect 1.0 client library
+synopsis:           OpenID Connect 1.0 library for RP
 description:
-    This library is a OpenID Connect 1.0 client.
+    oidc-client is a OpenID Connect 1.0 library for RP.
     .
     Examples: <https://github.com/krdlab/haskell-oidc-client/tree/master/examples>
 
 homepage:           https://github.com/krdlab/haskell-oidc-client
 license:            MIT
 license-file:       LICENSE
-author:             Sho Kuroda
+author:             krdlab
 maintainer:         krdlab@gmail.com
 copyright:          (c) 2015 Sho Kuroda
 category:           Web
