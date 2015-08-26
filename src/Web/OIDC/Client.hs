@@ -35,10 +35,8 @@ getAuthenticationRequestUrl oidc scope params = do
         [ ("response_type", Just "code")
         , ("client_id",     Just $ oidcClientId oidc)
         , ("redirect_uri",  Just $ oidcRedirectUri oidc)
-        , ("scope",         Just $ unwords $ map toBS scope)
+        , ("scope",         Just $ unwords $ "openid" : map toBS scope)
         ]
-
-    toBS OpenId = "openid"
     toBS Profile = "profile"
     toBS Email = "email"
     toBS Address = "address"

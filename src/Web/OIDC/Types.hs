@@ -22,7 +22,7 @@ import Data.ByteString (ByteString)
 import Data.Default (Default, def)
 import Jose.Jwt (Jwt)
 
-data ScopeValue = OpenId | Profile | Email | Address | Phone | OfflineAccess
+data ScopeValue = Profile | Email | Address | Phone | OfflineAccess
     deriving (Show, Eq)
 
 type Scope = [ScopeValue]
