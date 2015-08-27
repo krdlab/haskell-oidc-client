@@ -37,7 +37,7 @@ main = scotty 3000 $ do
         loc <- liftIO $
             OIDC.getAuthenticationRequestUrl
                 oidc
-                [OIDC.OpenId, OIDC.Email]
+                [OIDC.Email]
                 []  -- TODO: state
         redirect $ pack . show $ loc
 
