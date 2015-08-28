@@ -7,6 +7,7 @@ Stability: experimental
 module Web.OIDC.Types
     ( Scope
     , ScopeValue(..)
+    , State
     , Parameter
     , RequestParameters
     , Code
@@ -26,8 +27,13 @@ data ScopeValue = Profile | Email | Address | Phone | OfflineAccess
     deriving (Show, Eq)
 
 type Scope = [ScopeValue]
+
+type State = ByteString
+
 type Parameter = ByteString
+
 type RequestParameters = [(Parameter, Maybe ByteString)]
+
 type Code = ByteString
 
 data OIDC = OIDC

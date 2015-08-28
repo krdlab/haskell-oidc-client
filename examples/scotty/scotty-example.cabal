@@ -22,4 +22,9 @@ executable scotty-example
     , oidc-client
     , jose-jwt
     , data-default
+    , cprng-aes
+    , crypto-random
+    , base32-bytestring
+    , containers
+    , http-types
 

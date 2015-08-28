@@ -24,24 +24,28 @@ import Network.URI (URI)
 import Prelude hiding (unwords)
 import Web.OIDC.Types
 
-getAuthenticationRequestUrl :: MonadThrow m => OIDC -> Scope -> RequestParameters -> m URI
-getAuthenticationRequestUrl oidc scope params = do
+getAuthenticationRequestUrl :: MonadThrow m => OIDC -> Scope -> Maybe State -> RequestParameters -> m URI
+getAuthenticationRequestUrl oidc scope state params = do
     req <- parseUrl endpoint
     return $ getUri $ setQueryString query req
   where
     endpoint  = oidcAuthorizationSeverUrl oidc
-    query     = requireds ++ params
+    query     = requireds ++ state' ++ params
     requireds =
         [ ("response_type", Just "code")
         , ("client_id",     Just $ oidcClientId oidc)
         , ("redirect_uri",  Just $ oidcRedirectUri oidc)
         , ("scope",         Just $ unwords $ "openid" : map toBS scope)
         ]
-    toBS Profile = "profile"
-    toBS Email = "email"
-    toBS Address = "address"
-    toBS Phone = "phone"
-    toBS OfflineAccess = "offline_access"
+    toBS Profile        = "profile"
+    toBS Email          = "email"
+    toBS Address        = "address"
+    toBS Phone          = "phone"
+    toBS OfflineAccess  = "offline_access"
+    state' =
+        case state of
+            Just _  -> [("state", state)]
+            Nothing -> []
 
 -- TODO: error response
 
