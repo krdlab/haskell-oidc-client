@@ -5,7 +5,8 @@ Maintainer: krdlab@gmail.com
 Stability: experimental
 -}
 module Web.OIDC.Types
-    ( Scope
+    ( OP
+    , Scope
     , ScopeValue(..)
     , State
     , Parameter
@@ -23,7 +24,15 @@ import Data.ByteString (ByteString)
 import Data.Default (Default, def)
 import Jose.Jwt (Jwt)
 
-data ScopeValue = Profile | Email | Address | Phone | OfflineAccess
+type OP = String
+
+data ScopeValue =
+      OpenId
+    | Profile
+    | Email
+    | Address
+    | Phone
+    | OfflineAccess
     deriving (Show, Eq)
 
 type Scope = [ScopeValue]

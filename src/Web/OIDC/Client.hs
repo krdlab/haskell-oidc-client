@@ -8,13 +8,14 @@ module Web.OIDC.Client
     ( getAuthenticationRequestUrl
     , requestTokens
     , getClaims
-    , module Web.OIDC.Types
+    , module OIDC
     , module Jose.Jwt
     ) where
 
 import Control.Monad.Catch (MonadThrow)
 import Data.Aeson (decode)
 import Data.ByteString.Char8 (unwords)
+import Data.List (nub)
 import Data.Maybe (fromJust)
 import Jose.Jwt (Jwt)
 import qualified Jose.Jwt as Jwt
@@ -22,7 +23,10 @@ import Network.HTTP.Client (parseUrl, getUri, setQueryString, applyBasicAuth, ur
 import Network.HTTP.Client.TLS (tlsManagerSettings)
 import Network.URI (URI)
 import Prelude hiding (unwords)
-import Web.OIDC.Types
+
+import Web.OIDC.Discovery as OIDC
+import Web.OIDC.Discovery.Providers as OIDC
+import Web.OIDC.Types as OIDC
 
 getAuthenticationRequestUrl :: MonadThrow m => OIDC -> Scope -> Maybe State -> RequestParameters -> m URI
 getAuthenticationRequestUrl oidc scope state params = do
@@ -35,8 +39,9 @@ getAuthenticationRequestUrl oidc scope state params = do
         [ ("response_type", Just "code")
         , ("client_id",     Just $ oidcClientId oidc)
         , ("redirect_uri",  Just $ oidcRedirectUri oidc)
-        , ("scope",         Just $ unwords $ "openid" : map toBS scope)
+        , ("scope",         Just $ unwords . nub . map toBS $ OpenId:scope)
         ]
+    toBS OpenId         = "openid"
     toBS Profile        = "profile"
     toBS Email          = "email"
     toBS Address        = "address"

@@ -22,30 +22,29 @@ import Text.Blaze.Html.Renderer.Text (renderHtml)
 import Text.Blaze.Html5 ((!))
 import qualified Text.Blaze.Html5 as H
 import qualified Text.Blaze.Html5.Attributes as A
-import Web.OIDC.Client (OIDC(..), State, Code)
+import Web.OIDC.Client (OIDC(..), State, Code, OpenIdConfiguration(..))
 import qualified Web.OIDC.Client as OIDC
 import Web.Scotty (scotty, middleware, get, param, post, redirect, html, status, text)
 import Web.Scotty.Cookie (setSimpleCookie, getCookie)
-
-oidc :: OIDC
-oidc = def
-    { oidcAuthorizationSeverUrl = "https://accounts.google.com/o/oauth2/auth"
-    , oidcTokenEndpoint = "https://www.googleapis.com/oauth2/v3/token"
-    , oidcClientId = "your client id"
-    , oidcClientSecret = "your client secret"
-    , oidcRedirectUri = "http://localhost:3000/callback"
-    }
 
 type SessionStateMap = Map Text State
 
 main :: IO ()
 main = do
+    op <- OIDC.discover OIDC.google
+    let oidc = def {
+          oidcAuthorizationSeverUrl = authorizationEndpoint op
+        , oidcTokenEndpoint         = tokenEndpoint op
+        , oidcClientId              = "your client id"
+        , oidcClientSecret          = "your client secret"
+        , oidcRedirectUri           = "http://localhost:3000/callback"
+        }
     cprg <- makeSystem >>= newIORef
     ssm  <- newIORef M.empty
-    run cprg ssm
+    run oidc cprg ssm
 
-run :: CPRG g => IORef g -> IORef SessionStateMap -> IO ()
-run cprg ssm = scotty 3000 $ do
+run :: CPRG g => OIDC -> IORef g -> IORef SessionStateMap -> IO ()
+run oidc cprg ssm = scotty 3000 $ do
     middleware logStdoutDev
 
     get "/login" $
