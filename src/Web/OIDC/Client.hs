@@ -8,21 +8,30 @@ module Web.OIDC.Client
     ( getAuthenticationRequestUrl
     , requestTokens
     , getClaims
+    , validateIdToken
     , module OIDC
     , module Jose.Jwt
     ) where
 
-import Control.Monad.Catch (MonadThrow)
+import Control.Applicative ((<$>))
+import Control.Monad (unless)
+import Control.Monad.Catch (MonadThrow, throwM)
 import Data.Aeson (decode)
 import Data.ByteString.Char8 (unwords)
+import Data.ByteString.Lazy (ByteString)
 import Data.List (nub)
-import Data.Maybe (fromJust)
+import Data.Maybe (fromJust, fromMaybe)
+import Data.Text (pack)
+import Data.Text.Encoding (decodeUtf8)
+import Data.Time.Clock.POSIX (getPOSIXTime)
+import qualified Jose.Jwk as Jwk
 import Jose.Jwt (Jwt)
 import qualified Jose.Jwt as Jwt
 import Network.HTTP.Client (parseUrl, getUri, setQueryString, applyBasicAuth, urlEncodedBody, Request(..), newManager, httpLbs, responseBody)
 import Network.HTTP.Client.TLS (tlsManagerSettings)
 import Network.URI (URI)
-import Prelude hiding (unwords)
+import Prelude hiding (unwords, exp)
+import Crypto.Random (CPRG)
 
 import Web.OIDC.Discovery as OIDC
 import Web.OIDC.Discovery.Providers as OIDC
@@ -72,11 +81,71 @@ requestTokens oidc code = do
         , ("redirect_uri", redirect)
         ]
 
-getClaims :: Jwt -> Maybe Jwt.JwtClaims
+getClaims :: MonadThrow m => Jwt -> m Jwt.JwtClaims
 getClaims jwt =
     case Jwt.decodeClaims (Jwt.unJwt jwt) of
         Right (_, c) -> return c
-        Left  _      -> Nothing
+        Left  cause  -> throwM $ JwtExceptoin cause
 
--- TODO: ID Token Validation
+-- TODO: newManager
+getJwks :: String -> IO ByteString
+getJwks url = do
+    req <- parseUrl url
+    mgr <- newManager tlsManagerSettings
+    res <- httpLbs req mgr
+    return $ responseBody res
+
+-- TODO: newManager
+validateIdToken :: CPRG g => g -> OIDC -> Jwt -> IO (Jwt.JwtClaims, g)
+validateIdToken g oidc jwt = do
+    jsonJwk <- getJwks (jwksUri $ oidcProviderConf oidc)
+    decoded <- case Jwt.decodeClaims (Jwt.unJwt jwt) of
+        Left  cause     -> throwM $ JwtExceptoin cause
+        Right (jwth, _) ->
+            case jwth of
+                (Jwt.JwsH jws) -> do
+                    let kid = Jwt.jwsKid jws
+                        alg = Jwt.jwsAlg jws
+                        jwk = getJwk kid jsonJwk
+                    return $ Jwt.decode g [jwk] (Just $ Jwt.JwsEncoding alg) (Jwt.unJwt jwt)
+                (Jwt.JweH jwe) -> do
+                    let kid = Jwt.jweKid jwe
+                        alg = Jwt.jweAlg jwe
+                        enc = Jwt.jweEnc jwe
+                        jwk = getJwk kid jsonJwk
+                    return $ Jwt.decode g [jwk] (Just $ Jwt.JweEncoding alg enc) (Jwt.unJwt jwt)
+                _              -> error "not supported"
+    case fst decoded of
+        Left err -> throwM $ JwtExceptoin err
+        Right _  -> return ()
+    claims <- getClaims jwt
+    unless (iss claims == issuer')
+        $ throwM $ ValidationException "issuer"
+    unless (clientId `elem` aud claims)
+        $ throwM $ ValidationException "audience"
+    expire <- exp claims
+    now <- Jwt.IntDate <$> getPOSIXTime
+    unless (now < expire)
+        $ throwM $ ValidationException "expire"
+    return (claims, snd decoded)
+  where
+    getJwk kid json =
+        case kid of
+            Just keyId ->
+                let jwk = fromJust $ decode json in head $ filter (eq keyId) (Jwk.keys jwk) -- TODO
+            Nothing    ->
+                let jwk = fromJust $ decode json in jwk
+      where
+        eq e jwk = case Jwk.jwkId jwk of
+                       Just i  -> i == e
+                       Nothing -> False
+
+    iss c = fromMaybe "" (Jwt.jwtIss c)
+    aud c = fromMaybe [] (Jwt.jwtAud c)
+    exp c =
+        case Jwt.jwtExp c of
+            Nothing -> throwM $ ValidationException "exp claim was not found"
+            Just ex -> return ex
+    issuer' = pack . issuer . oidcProviderConf $ oidc
+    clientId = decodeUtf8 . oidcClientId $ oidc
 

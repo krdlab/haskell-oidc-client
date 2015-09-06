@@ -9,7 +9,7 @@ import Crypto.Random.AESCtr (makeSystem)
 import Crypto.Random.API (CPRG, cprgGenBytes)
 import Data.ByteString.Base32 (encode)
 import Data.Default (def)
-import Data.IORef (IORef, newIORef, atomicModifyIORef', readIORef)
+import Data.IORef (IORef, newIORef, atomicModifyIORef', readIORef, writeIORef)
 import Data.Map (Map)
 import qualified Data.Map as M
 import Data.Text (Text)
@@ -23,7 +23,7 @@ import Text.Blaze.Html5 ((!))
 import qualified Text.Blaze.Html5 as H
 import qualified Text.Blaze.Html5.Attributes as A
 import Web.OIDC.Client (OIDC(..), State, Code, OpenIdConfiguration(..))
-import qualified Web.OIDC.Client as OIDC
+import qualified Web.OIDC.Client as O
 import Web.Scotty (scotty, middleware, get, param, post, redirect, html, status, text)
 import Web.Scotty.Cookie (setSimpleCookie, getCookie)
 
@@ -31,13 +31,14 @@ type SessionStateMap = Map Text State
 
 main :: IO ()
 main = do
-    op <- OIDC.discover OIDC.google
+    op <- O.discover O.google
     let oidc = def {
           oidcAuthorizationSeverUrl = authorizationEndpoint op
         , oidcTokenEndpoint         = tokenEndpoint op
         , oidcClientId              = "your client id"
         , oidcClientSecret          = "your client secret"
         , oidcRedirectUri           = "http://localhost:3000/callback"
+        , oidcProviderConf          = op
         }
     cprg <- makeSystem >>= newIORef
     ssm  <- newIORef M.empty
@@ -55,12 +56,7 @@ run oidc cprg ssm = scotty 3000 $ do
 
     post "/login" $ do
         state <- genState
-        loc <- liftIO $
-            OIDC.getAuthenticationRequestUrl
-                oidc
-                [OIDC.Email]
-                (Just state)
-                []
+        loc <- liftIO $ O.getAuthenticationRequestUrl oidc [O.Email] (Just state) []
         sid <- genSessionId
         saveState sid state
         setSimpleCookie "test-session" sid
@@ -76,9 +72,12 @@ run oidc cprg ssm = scotty 3000 $ do
                 sst <- getStateBy sid
                 if state == sst
                     then do
-                        tokens <- liftIO $ OIDC.requestTokens oidc code
-                        -- TODO: validation
-                        let claims = OIDC.getClaims $ OIDC.idToken tokens
+                        tokens <- liftIO $ O.requestTokens oidc code
+                        claims <- liftIO $ do
+                            g <- readIORef cprg
+                            (c, g') <- O.validateIdToken g oidc (O.idToken tokens)
+                            writeIORef cprg g'
+                            return c
                         blaze $ do
                             H.h1 "Result"
                             H.pre $ H.toHtml $ show claims
