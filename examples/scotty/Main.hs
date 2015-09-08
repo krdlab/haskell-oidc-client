@@ -16,6 +16,8 @@ import Data.Text (Text)
 import Data.Text.Encoding (decodeUtf8)
 import Data.Text.Lazy (pack)
 import Data.Tuple (swap)
+import Network.HTTP.Client (newManager, Manager)
+import Network.HTTP.Client.TLS (tlsManagerSettings)
 import Network.HTTP.Types (badRequest400)
 import Network.Wai.Middleware.RequestLogger (logStdoutDev)
 import Text.Blaze.Html.Renderer.Text (renderHtml)
@@ -42,10 +44,11 @@ main = do
         }
     cprg <- makeSystem >>= newIORef
     ssm  <- newIORef M.empty
-    run oidc cprg ssm
+    mgr  <- newManager tlsManagerSettings
+    run oidc cprg ssm mgr
 
-run :: CPRG g => OIDC -> IORef g -> IORef SessionStateMap -> IO ()
-run oidc cprg ssm = scotty 3000 $ do
+run :: CPRG g => OIDC -> IORef g -> IORef SessionStateMap -> Manager -> IO ()
+run oidc cprg ssm mgr = scotty 3000 $ do
     middleware logStdoutDev
 
     get "/login" $
@@ -72,10 +75,10 @@ run oidc cprg ssm = scotty 3000 $ do
                 sst <- getStateBy sid
                 if state == sst
                     then do
-                        tokens <- liftIO $ O.requestTokens oidc code
+                        tokens <- liftIO $ O.requestTokens oidc code mgr
                         claims <- liftIO $ do
                             g <- readIORef cprg
-                            (c, g') <- O.validateIdToken g oidc (O.idToken tokens)
+                            (c, g') <- O.validateIdToken g oidc (O.idToken tokens) mgr
                             writeIORef cprg g'
                             return c
                         blaze $ do

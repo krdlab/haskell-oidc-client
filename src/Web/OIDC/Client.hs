@@ -27,8 +27,7 @@ import Data.Time.Clock.POSIX (getPOSIXTime)
 import qualified Jose.Jwk as Jwk
 import Jose.Jwt (Jwt)
 import qualified Jose.Jwt as Jwt
-import Network.HTTP.Client (parseUrl, getUri, setQueryString, applyBasicAuth, urlEncodedBody, Request(..), newManager, httpLbs, responseBody)
-import Network.HTTP.Client.TLS (tlsManagerSettings)
+import Network.HTTP.Client (parseUrl, getUri, setQueryString, applyBasicAuth, urlEncodedBody, Request(..), Manager, httpLbs, responseBody)
 import Network.URI (URI)
 import Prelude hiding (unwords, exp)
 import Crypto.Random (CPRG)
@@ -63,11 +62,10 @@ getAuthenticationRequestUrl oidc scope state params = do
 
 -- TODO: error response
 
-requestTokens :: OIDC -> Code -> IO Tokens
-requestTokens oidc code = do
+requestTokens :: OIDC -> Code -> Manager -> IO Tokens
+requestTokens oidc code mgr = do
     req <- parseUrl endpoint
     let req' = applyBasicAuth cid csec $ urlEncodedBody body $ req { method = "POST" }
-    mgr <- newManager tlsManagerSettings
     res <- httpLbs req' mgr
     return $ fromJust . decode $ responseBody res
   where
@@ -87,18 +85,15 @@ getClaims jwt =
         Right (_, c) -> return c
         Left  cause  -> throwM $ JwtExceptoin cause
 
--- TODO: newManager
-getJwks :: String -> IO ByteString
-getJwks url = do
+getJwks :: String -> Manager -> IO ByteString
+getJwks url mgr = do
     req <- parseUrl url
-    mgr <- newManager tlsManagerSettings
     res <- httpLbs req mgr
     return $ responseBody res
 
--- TODO: newManager
-validateIdToken :: CPRG g => g -> OIDC -> Jwt -> IO (Jwt.JwtClaims, g)
-validateIdToken g oidc jwt = do
-    jsonJwk <- getJwks (jwksUri $ oidcProviderConf oidc)
+validateIdToken :: CPRG g => g -> OIDC -> Jwt -> Manager -> IO (Jwt.JwtClaims, g)
+validateIdToken g oidc jwt mgr = do
+    jsonJwk <- getJwks (jwksUri $ oidcProviderConf oidc) mgr
     decoded <- case Jwt.decodeClaims (Jwt.unJwt jwt) of
         Left  cause     -> throwM $ JwtExceptoin cause
         Right (jwth, _) ->
