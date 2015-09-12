@@ -8,15 +8,11 @@ module Web.OIDC.Discovery where
 
 import Data.Aeson (decode)
 import Data.Maybe (fromJust)
-import Network.HTTP.Client (newManager, parseUrl, httpLbs, responseBody)
-import Network.HTTP.Client.TLS (tlsManagerSettings)
+import Network.HTTP.Client (Manager, parseUrl, httpLbs, responseBody)
 import Web.OIDC.Types
 
--- TODO: manager
-discover :: OP -> IO OpenIdConfiguration
-discover uri = do
+discover :: OP -> Manager -> IO OpenIdConfiguration
+discover uri manager = do
     req <- parseUrl uri
-    mgr <- newManager tlsManagerSettings
-    res <- httpLbs req mgr
+    res <- httpLbs req manager
     return $ fromJust . decode $ responseBody res
-

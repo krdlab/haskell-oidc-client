@@ -42,7 +42,7 @@ main = do
     cprg <- makeSystem >>= newIORef
     ssm  <- newIORef M.empty
     mgr  <- newManager tlsManagerSettings
-    conf <- O.discover O.google
+    conf <- O.discover O.google mgr
     let oidc = O.setCredentials clientId clientSecret redirectUri $ O.setProviderConf conf $ O.newOIDC (Just cprg)
     run oidc cprg ssm mgr
 
