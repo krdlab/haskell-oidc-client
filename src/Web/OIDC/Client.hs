@@ -35,7 +35,7 @@ import Crypto.Random (CPRG)
 import Web.OIDC.Discovery as OIDC
 import Web.OIDC.Discovery.Providers as OIDC
 import Web.OIDC.Types as OIDC
-import Web.OIDC.Internal as I
+import Web.OIDC.Client.Internal as I
 
 getAuthenticationRequestUrl :: (CPRG g, MonadThrow m) => OIDC g -> Scope -> Maybe State -> RequestParameters -> m URI
 getAuthenticationRequestUrl oidc scope state params = do

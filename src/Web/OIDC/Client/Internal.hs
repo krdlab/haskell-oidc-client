@@ -1,10 +1,10 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-|
-Module: Web.OIDC.Internal
+Module: Web.OIDC.Client.Internal
 Maintainer: krdlab@gmail.com
 Stability: experimental
 -}
-module Web.OIDC.Internal where
+module Web.OIDC.Client.Internal where
 
 import Control.Applicative ((<$>), (<*>))
 import Control.Monad (mzero)
