@@ -7,9 +7,9 @@ import Control.Applicative ((<$>))
 import Control.Monad.IO.Class (liftIO)
 import Crypto.Random.AESCtr (makeSystem)
 import Crypto.Random.API (CPRG, cprgGenBytes)
+import Data.ByteString (ByteString)
 import Data.ByteString.Base32 (encode)
-import Data.Default (def)
-import Data.IORef (IORef, newIORef, atomicModifyIORef', readIORef, writeIORef)
+import Data.IORef (IORef, newIORef, atomicModifyIORef', readIORef)
 import Data.Map (Map)
 import qualified Data.Map as M
 import Data.Text (Text)
@@ -24,30 +24,29 @@ import Text.Blaze.Html.Renderer.Text (renderHtml)
 import Text.Blaze.Html5 ((!))
 import qualified Text.Blaze.Html5 as H
 import qualified Text.Blaze.Html5.Attributes as A
-import Web.OIDC.Client (OIDC(..), State, Code, OpenIdConfiguration(..))
+import Web.OIDC.Client (OIDC(..), State, Code)
 import qualified Web.OIDC.Client as O
 import Web.Scotty (scotty, middleware, get, param, post, redirect, html, status, text)
 import Web.Scotty.Cookie (setSimpleCookie, getCookie)
 
 type SessionStateMap = Map Text State
 
+clientId, clientSecret :: ByteString
+clientId     = "your client id"
+clientSecret = "your client secret"
+redirectUri :: ByteString
+redirectUri  = "http://localhost:3000/callback"
+
 main :: IO ()
 main = do
-    op <- O.discover O.google
-    let oidc = def {
-          oidcAuthorizationSeverUrl = authorizationEndpoint op
-        , oidcTokenEndpoint         = tokenEndpoint op
-        , oidcClientId              = "your client id"
-        , oidcClientSecret          = "your client secret"
-        , oidcRedirectUri           = "http://localhost:3000/callback"
-        , oidcProviderConf          = op
-        }
     cprg <- makeSystem >>= newIORef
     ssm  <- newIORef M.empty
     mgr  <- newManager tlsManagerSettings
+    conf <- O.discover O.google
+    let oidc = O.setCredentials clientId clientSecret redirectUri $ O.setProviderConf conf $ O.newOIDC (Just cprg)
     run oidc cprg ssm mgr
 
-run :: CPRG g => OIDC -> IORef g -> IORef SessionStateMap -> Manager -> IO ()
+run :: CPRG g => OIDC g -> IORef g -> IORef SessionStateMap -> Manager -> IO ()
 run oidc cprg ssm mgr = scotty 3000 $ do
     middleware logStdoutDev
 
@@ -76,14 +75,9 @@ run oidc cprg ssm mgr = scotty 3000 $ do
                 if state == sst
                     then do
                         tokens <- liftIO $ O.requestTokens oidc code mgr
-                        claims <- liftIO $ do
-                            g <- readIORef cprg
-                            (c, g') <- O.validateIdToken g oidc (O.idToken tokens) mgr
-                            writeIORef cprg g'
-                            return c
                         blaze $ do
                             H.h1 "Result"
-                            H.pre $ H.toHtml $ show claims
+                            H.pre . H.toHtml . show . O.itClaims . O.idToken $ tokens
                     else status401
 
   where

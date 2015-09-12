@@ -15,19 +15,27 @@ module Web.OIDC.Types
     , Code
     , OpenIdConfiguration(..)
     , OIDC(..)
-    , newOIDC
+    , setProviderConf
+    , setCredentials
     , Tokens(..)
+    , IdToken(..)
+    , IdTokenClaims(..)
+    , toIdTokenClaims
+    , newOIDC
     , OpenIdException(..)
     ) where
 
 import Control.Applicative ((<$>), (<*>))
 import Control.Exception (Exception)
 import Control.Monad (mzero)
-import Data.Aeson (FromJSON, parseJSON, Value(..), (.:), (.:?))
+import Crypto.Random.API (CPRG)
+import Data.Aeson (FromJSON, parseJSON, Value(..), (.:))
 import Data.ByteString (ByteString)
-import Data.Default (Default, def)
 import Data.Typeable (Typeable)
-import Jose.Jwt (Jwt, JwtError)
+import Jose.Jwt (Jwt, JwtClaims(..), JwtError, IntDate)
+import Data.Maybe (fromJust)
+import Data.Text (unpack)
+import Data.IORef (IORef)
 
 type OP = String
 
@@ -82,46 +90,74 @@ instance FromJSON OpenIdConfiguration where
         <*> o .: "claims_supported"
     parseJSON _ = mzero
 
-data OIDC = OIDC
+data (CPRG g) => OIDC g = OIDC
     { oidcAuthorizationSeverUrl :: String
     , oidcTokenEndpoint :: String
     , oidcClientId :: ByteString
     , oidcClientSecret :: ByteString
     , oidcRedirectUri :: ByteString
     , oidcProviderConf :: OpenIdConfiguration
+    , oidcCPRGRef :: Maybe (IORef g)
     }
-  deriving (Show, Eq)
 
-newOIDC :: OIDC
-newOIDC = OIDC
+newOIDC :: CPRG g => Maybe (IORef g) -> OIDC g
+newOIDC ref = OIDC
     { oidcAuthorizationSeverUrl = error "You must specify oidcAuthorizationSeverUrl"
     , oidcTokenEndpoint = error "You must specify oidcTokenEndpoint"
     , oidcClientId = error "You must specify oidcClientId"
     , oidcClientSecret = error "You must specify oidcClientSecret"
     , oidcRedirectUri = error "You must specify oidcRedirectUri"
     , oidcProviderConf = error "You must specify oidcProviderConf"
+    , oidcCPRGRef = ref
     }
 
-instance Default OIDC where
-    def = newOIDC
+setProviderConf :: CPRG g => OpenIdConfiguration -> OIDC g -> OIDC g
+setProviderConf c oidc =
+    oidc { oidcAuthorizationSeverUrl = authorizationEndpoint c
+         , oidcTokenEndpoint = tokenEndpoint c
+         , oidcProviderConf = c
+         }
+
+setCredentials :: CPRG g => ByteString -> ByteString -> ByteString -> OIDC g -> OIDC g
+setCredentials cid secret redirect oidc =
+    oidc { oidcClientId = cid
+         , oidcClientSecret = secret
+         , oidcRedirectUri = redirect
+         }
 
 data Tokens = Tokens
-    { accessToken :: !String
-    , tokenType :: !String
-    , idToken :: !Jwt
-    , expiresIn :: !(Maybe Integer)
-    , refreshToken :: !(Maybe String)
+    { accessToken :: String
+    , tokenType :: String
+    , idToken :: IdToken
+    , expiresIn :: Maybe Integer
+    , refreshToken :: Maybe String
     }
   deriving (Show, Eq)
 
-instance FromJSON Tokens where
-    parseJSON (Object o) = Tokens
-        <$> o .:  "access_token"
-        <*> o .:  "token_type"
-        <*> o .:  "id_token"
-        <*> o .:? "expires_in"
-        <*> o .:? "refresh_token"
-    parseJSON _          = mzero
+data IdToken = IdToken
+    { itClaims :: IdTokenClaims
+    , itJwt :: Jwt
+    }
+  deriving (Show, Eq)
+
+data IdTokenClaims = IdTokenClaims
+    { itcIss :: String
+    , itcSub :: String
+    , itcAud :: [String]
+    , itcExp :: IntDate
+    , itcIat :: IntDate
+    -- TODO: optional
+    }
+  deriving (Show, Eq)
+
+toIdTokenClaims :: JwtClaims -> IdTokenClaims
+toIdTokenClaims c = IdTokenClaims
+    { itcIss =     unpack $ fromJust (jwtIss c)
+    , itcSub =     unpack $ fromJust (jwtSub c)
+    , itcAud = map unpack $ fromJust (jwtAud c)
+    , itcExp =              fromJust (jwtExp c)
+    , itcIat =              fromJust (jwtIat c)
+    }
 
 data OpenIdException =
       JwtExceptoin JwtError
