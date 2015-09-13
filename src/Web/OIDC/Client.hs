@@ -35,7 +35,7 @@ import Crypto.Random (CPRG)
 import Web.OIDC.Discovery as OIDC
 import Web.OIDC.Discovery.Providers as OIDC
 import Web.OIDC.Types as OIDC
-import Web.OIDC.Client.Internal as I
+import qualified Web.OIDC.Client.Internal as I
 
 getAuthenticationRequestUrl :: (CPRG g, MonadThrow m) => OIDC g -> Scope -> Maybe State -> RequestParameters -> m URI
 getAuthenticationRequestUrl oidc scope state params = do
@@ -48,14 +48,8 @@ getAuthenticationRequestUrl oidc scope state params = do
         [ ("response_type", Just "code")
         , ("client_id",     Just $ oidcClientId oidc)
         , ("redirect_uri",  Just $ oidcRedirectUri oidc)
-        , ("scope",         Just $ unwords . nub . map toBS $ OpenId:scope)
+        , ("scope",         Just $ unwords . nub . map I.toBS $ OpenId:scope)
         ]
-    toBS OpenId         = "openid"
-    toBS Profile        = "profile"
-    toBS Email          = "email"
-    toBS Address        = "address"
-    toBS Phone          = "phone"
-    toBS OfflineAccess  = "offline_access"
     state' =
         case state of
             Just _  -> [("state", state)]
