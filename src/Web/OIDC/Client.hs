@@ -15,7 +15,7 @@ import Control.Applicative ((<$>))
 import Control.Monad (unless)
 import Control.Monad.Catch (MonadThrow, throwM)
 import Data.Aeson (decode)
-import Data.ByteString.Char8 (unwords)
+import qualified Data.ByteString.Char8 as B
 import Data.ByteString.Lazy (ByteString)
 import Data.IORef (atomicModifyIORef')
 import Data.List (nub)
@@ -29,7 +29,7 @@ import Jose.Jwt (Jwt)
 import qualified Jose.Jwt as Jwt
 import Network.HTTP.Client (parseUrl, getUri, setQueryString, applyBasicAuth, urlEncodedBody, Request(..), Manager, httpLbs, responseBody)
 import Network.URI (URI)
-import Prelude hiding (unwords, exp)
+import Prelude hiding (exp)
 import Crypto.Random (CPRG)
 
 import Web.OIDC.Discovery as OIDC
@@ -48,7 +48,7 @@ getAuthenticationRequestUrl oidc scope state params = do
         [ ("response_type", Just "code")
         , ("client_id",     Just $ oidcClientId oidc)
         , ("redirect_uri",  Just $ oidcRedirectUri oidc)
-        , ("scope",         Just $ unwords . nub . map I.toBS $ OpenId:scope)
+        , ("scope",         Just $ B.pack . unwords . nub . map show $ OpenId:scope)
         ]
     state' =
         case state of

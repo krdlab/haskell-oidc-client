@@ -9,18 +9,7 @@ module Web.OIDC.Client.Internal where
 import Control.Applicative ((<$>), (<*>))
 import Control.Monad (mzero)
 import Data.Aeson (FromJSON, parseJSON, Value(..), (.:), (.:?))
-import Data.ByteString (ByteString)
 import Jose.Jwt (Jwt)
-
-import Web.OIDC.Types (ScopeValue(..))
-
-toBS :: ScopeValue -> ByteString
-toBS OpenId         = "openid"
-toBS Profile        = "profile"
-toBS Email          = "email"
-toBS Address        = "address"
-toBS Phone          = "phone"
-toBS OfflineAccess  = "offline_access"
 
 data TokensResponse = TokensResponse
     { accessToken :: !String

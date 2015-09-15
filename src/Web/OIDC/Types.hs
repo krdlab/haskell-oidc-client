@@ -33,8 +33,9 @@ import Data.Aeson (FromJSON, parseJSON, Value(..), (.:), withText)
 import Data.Attoparsec.Text (parseOnly, endOfInput, string)
 import Data.ByteString (ByteString)
 import Data.IORef (IORef)
+import Data.List (isPrefixOf)
 import Data.Maybe (fromJust)
-import Data.Text (unpack)
+import Data.Text (unpack, pack)
 import Data.Typeable (Typeable)
 import Jose.Jwt (Jwt, JwtClaims(..), JwtError, IntDate)
 
@@ -47,7 +48,25 @@ data ScopeValue =
     | Address
     | Phone
     | OfflineAccess
-    deriving (Show, Eq)
+    deriving (Eq)
+
+instance Show ScopeValue where
+    show OpenId         = "openid"
+    show Profile        = "profile"
+    show Email          = "email"
+    show Address        = "address"
+    show Phone          = "phone"
+    show OfflineAccess  = "offline_access"
+
+instance Read ScopeValue where
+    readsPrec _ s
+        | "openid"          `isPrefixOf` s = [(OpenId, drop 6 s)]
+        | "profile"         `isPrefixOf` s = [(Profile, drop 7 s)]
+        | "email"           `isPrefixOf` s = [(Email, drop 5 s)]
+        | "address"         `isPrefixOf` s = [(Address, drop 7 s)]
+        | "phone"           `isPrefixOf` s = [(Phone, drop 5 s)]
+        | "offline_access"  `isPrefixOf` s = [(OfflineAccess, drop 14 s)]
+        | otherwise = []
 
 instance FromJSON ScopeValue where
     parseJSON = withText "ScopeValue" (run parser)
@@ -56,12 +75,13 @@ instance FromJSON ScopeValue where
             case parseOnly (p <* endOfInput) t of
                 Right r   -> return r
                 Left  err -> fail $ "could not parse scope value: " ++ err
-        parser =    string "openid" *> return OpenId
-                <|> string "profile" *> return Profile
-                <|> string "email" *> return Email
-                <|> string "address" *> return Address
-                <|> string "phone" *> return Phone
-                <|> string "offline_access" *> return OfflineAccess
+        parser =    parser' OpenId
+                <|> parser' Profile
+                <|> parser' Email
+                <|> parser' Address
+                <|> parser' Phone
+                <|> parser' OfflineAccess
+        parser' v = string (pack . show $ v) *> return v
 
 type Scope = [ScopeValue]
 
