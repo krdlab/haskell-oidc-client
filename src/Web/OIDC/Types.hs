@@ -25,17 +25,18 @@ module Web.OIDC.Types
     , OpenIdException(..)
     ) where
 
-import Control.Applicative ((<$>), (<*>))
+import Control.Applicative ((<$>), (<*>), (<*), (*>), (<|>))
 import Control.Exception (Exception)
 import Control.Monad (mzero)
 import Crypto.Random.API (CPRG)
-import Data.Aeson (FromJSON, parseJSON, Value(..), (.:))
+import Data.Aeson (FromJSON, parseJSON, Value(..), (.:), withText)
+import Data.Attoparsec.Text (parseOnly, endOfInput, string)
 import Data.ByteString (ByteString)
-import Data.Typeable (Typeable)
-import Jose.Jwt (Jwt, JwtClaims(..), JwtError, IntDate)
+import Data.IORef (IORef)
 import Data.Maybe (fromJust)
 import Data.Text (unpack)
-import Data.IORef (IORef)
+import Data.Typeable (Typeable)
+import Jose.Jwt (Jwt, JwtClaims(..), JwtError, IntDate)
 
 type OP = String
 
@@ -47,6 +48,20 @@ data ScopeValue =
     | Phone
     | OfflineAccess
     deriving (Show, Eq)
+
+instance FromJSON ScopeValue where
+    parseJSON = withText "ScopeValue" (run parser)
+      where
+        run p t =
+            case parseOnly (p <* endOfInput) t of
+                Right r   -> return r
+                Left  err -> fail $ "could not parse scope value: " ++ err
+        parser =    string "openid" *> return OpenId
+                <|> string "profile" *> return Profile
+                <|> string "email" *> return Email
+                <|> string "address" *> return Address
+                <|> string "phone" *> return Phone
+                <|> string "offline_access" *> return OfflineAccess
 
 type Scope = [ScopeValue]
 

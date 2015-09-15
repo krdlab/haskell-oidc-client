@@ -33,6 +33,7 @@ library
     , bytestring
     , text
     , aeson
+    , attoparsec
     , exceptions
     , http-client
     , tls >=1.3.2
