@@ -14,6 +14,7 @@ module Web.OIDC.Client
 import Control.Applicative ((<$>))
 import Control.Monad (unless)
 import Control.Monad.Catch (MonadThrow, throwM)
+import Crypto.Random (CPRG)
 import Data.Aeson (decode)
 import qualified Data.ByteString.Char8 as B
 import Data.ByteString.Lazy (ByteString)
@@ -30,7 +31,6 @@ import qualified Jose.Jwt as Jwt
 import Network.HTTP.Client (parseUrl, getUri, setQueryString, applyBasicAuth, urlEncodedBody, Request(..), Manager, httpLbs, responseBody)
 import Network.URI (URI)
 import Prelude hiding (exp)
-import Crypto.Random (CPRG)
 
 import Web.OIDC.Discovery as OIDC
 import Web.OIDC.Discovery.Providers as OIDC
