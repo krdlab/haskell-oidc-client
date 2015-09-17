@@ -5,7 +5,11 @@ Maintainer: krdlab@gmail.com
 Stability: experimental
 -}
 module Web.OIDC.Client
-    ( getAuthenticationRequestUrl
+    ( OIDC(..)
+    , newOIDC
+    , setProviderConf
+    , setCredentials
+    , getAuthenticationRequestUrl
     , requestTokens
     , module OIDC
     , module Jose.Jwt
@@ -17,10 +21,11 @@ import Control.Monad.Catch (MonadThrow, throwM)
 import Crypto.Random (CPRG)
 import Data.Aeson (decode)
 import qualified Data.ByteString.Char8 as B
-import Data.ByteString.Lazy (ByteString)
-import Data.IORef (atomicModifyIORef')
+import Data.ByteString (ByteString)
+import qualified Data.ByteString.Lazy as L (ByteString)
+import Data.IORef (IORef, atomicModifyIORef')
 import Data.List (nub)
-import Data.Maybe (fromJust, fromMaybe)
+import Data.Maybe (fromJust)
 import Data.Text (pack)
 import Data.Text.Encoding (decodeUtf8)
 import Data.Time.Clock.POSIX (getPOSIXTime)
@@ -32,22 +37,57 @@ import Network.HTTP.Client (parseUrl, getUri, setQueryString, applyBasicAuth, ur
 import Network.URI (URI)
 import Prelude hiding (exp)
 
-import Web.OIDC.Discovery as OIDC
+import qualified Web.OIDC.Discovery as D
 import Web.OIDC.Discovery.Providers as OIDC
 import Web.OIDC.Types as OIDC
 import qualified Web.OIDC.Client.Internal as I
+
+data (CPRG g) => OIDC g = OIDC
+    { authorizationSeverUrl :: String
+    , tokenEndpoint         :: String
+    , clientId              :: ByteString
+    , clientSecret          :: ByteString
+    , redirectUri           :: ByteString
+    , providerConf          :: D.Configuration
+    , cprgRef               :: Maybe (IORef g)
+    }
+
+newOIDC :: CPRG g => Maybe (IORef g) -> OIDC g
+newOIDC ref = OIDC
+    { authorizationSeverUrl = error "You must specify oidcAuthorizationSeverUrl"
+    , tokenEndpoint         = error "You must specify oidcTokenEndpoint"
+    , clientId              = error "You must specify oidcClientId"
+    , clientSecret          = error "You must specify oidcClientSecret"
+    , redirectUri           = error "You must specify oidcRedirectUri"
+    , providerConf          = error "You must specify oidcProviderConf"
+    , cprgRef               = ref
+    }
+
+setProviderConf :: CPRG g => D.Configuration -> OIDC g -> OIDC g
+setProviderConf c oidc =
+    oidc { authorizationSeverUrl    = D.authorizationEndpoint c
+         , tokenEndpoint            = D.tokenEndpoint c
+         , providerConf             = c
+         }
+
+setCredentials :: CPRG g => ByteString -> ByteString -> ByteString -> OIDC g -> OIDC g
+setCredentials cid secret redirect oidc =
+    oidc { clientId     = cid
+         , clientSecret = secret
+         , redirectUri  = redirect
+         }
 
 getAuthenticationRequestUrl :: (CPRG g, MonadThrow m) => OIDC g -> Scope -> Maybe State -> RequestParameters -> m URI
 getAuthenticationRequestUrl oidc scope state params = do
     req <- parseUrl endpoint
     return $ getUri $ setQueryString query req
   where
-    endpoint  = oidcAuthorizationSeverUrl oidc
+    endpoint  = authorizationSeverUrl oidc
     query     = requireds ++ state' ++ params
     requireds =
         [ ("response_type", Just "code")
-        , ("client_id",     Just $ oidcClientId oidc)
-        , ("redirect_uri",  Just $ oidcRedirectUri oidc)
+        , ("client_id",     Just $ clientId oidc)
+        , ("redirect_uri",  Just $ redirectUri oidc)
         , ("scope",         Just $ B.pack . unwords . nub . map show $ OpenId:scope)
         ]
     state' =
@@ -67,10 +107,10 @@ requestTokens oidc code manager = do
 
     validate oidc tokensJson manager
   where
-    endpoint = oidcTokenEndpoint oidc
-    cid      = oidcClientId oidc
-    csec     = oidcClientSecret oidc
-    redirect = oidcRedirectUri oidc
+    endpoint = tokenEndpoint oidc
+    cid      = clientId oidc
+    csec     = clientSecret oidc
+    redirect = redirectUri oidc
     body     =
         [ ("grant_type",   "authorization_code")
         , ("code",         code)
@@ -79,36 +119,36 @@ requestTokens oidc code manager = do
 
 validate :: CPRG g => OIDC g -> I.TokensResponse -> Manager -> IO Tokens
 validate oidc tres manager = do
-    let jwt = I.idToken tres
-    claims <- validateIdToken oidc jwt manager
+    let jwt' = I.idToken tres
+    claims' <- validateIdToken oidc jwt' manager
     let tokens = Tokens {
           OIDC.accessToken  = I.accessToken tres
         , OIDC.tokenType    = I.tokenType tres
-        , OIDC.idToken      = IdToken { itClaims = toIdTokenClaims claims, itJwt = jwt }
+        , OIDC.idToken      = IdToken { claims = toIdTokenClaims claims', jwt = jwt' }
         , OIDC.expiresIn    = I.expiresIn tres
         , OIDC.refreshToken = I.refreshToken tres
         }
     return tokens
 
 getClaims :: MonadThrow m => Jwt -> m Jwt.JwtClaims
-getClaims jwt =
-    case Jwt.decodeClaims (Jwt.unJwt jwt) of
+getClaims jwt' =
+    case Jwt.decodeClaims (Jwt.unJwt jwt') of
         Right (_, c) -> return c
         Left  cause  -> throwM $ JwtExceptoin cause
 
 -- TODO: oidcJwks :: Maybe (IORef [JWK])
-getJwks :: String -> Manager -> IO ByteString
+getJwks :: String -> Manager -> IO L.ByteString
 getJwks url mgr = do
     req <- parseUrl url
     res <- httpLbs req mgr
     return $ responseBody res
 
 validateIdToken :: CPRG g => OIDC g -> Jwt -> Manager -> IO Jwt.JwtClaims
-validateIdToken oidc jwt mgr = do
-    jsonJwk <- getJwks (jwksUri $ oidcProviderConf oidc) mgr    -- TODO
-    case oidcCPRGRef oidc of
+validateIdToken oidc jwt' mgr = do
+    jsonJwk <- getJwks (D.jwksUri $ providerConf oidc) mgr    -- TODO
+    case cprgRef oidc of
         Just crpg -> do
-            decoded <- case Jwt.decodeClaims (Jwt.unJwt jwt) of
+            decoded <- case Jwt.decodeClaims (Jwt.unJwt jwt') of
                 Left  cause     -> throwM $ JwtExceptoin cause
                 Right (jwth, _) ->
                     case jwth of
@@ -116,28 +156,28 @@ validateIdToken oidc jwt mgr = do
                             let kid = Jwt.jwsKid jws
                                 alg = Jwt.jwsAlg jws
                                 jwk = getJwk kid jsonJwk
-                            atomicModifyIORef' crpg $ \g -> swap (Jwt.decode g [jwk] (Just $ Jwt.JwsEncoding alg) (Jwt.unJwt jwt))
+                            atomicModifyIORef' crpg $ \g -> swap (Jwt.decode g [jwk] (Just $ Jwt.JwsEncoding alg) (Jwt.unJwt jwt'))
                         (Jwt.JweH jwe) -> do
                             let kid = Jwt.jweKid jwe
                                 alg = Jwt.jweAlg jwe
                                 enc = Jwt.jweEnc jwe
                                 jwk = getJwk kid jsonJwk
-                            atomicModifyIORef' crpg $ \g -> swap (Jwt.decode g [jwk] (Just $ Jwt.JweEncoding alg enc) (Jwt.unJwt jwt))
+                            atomicModifyIORef' crpg $ \g -> swap (Jwt.decode g [jwk] (Just $ Jwt.JweEncoding alg enc) (Jwt.unJwt jwt'))
                         _              -> error "not supported"
             case decoded of
                 Left err -> throwM $ JwtExceptoin err
                 Right _  -> return ()
         Nothing -> undefined -- TODO: request tokeninfo
-    claims <- getClaims jwt
-    unless (iss claims == issuer')
+    claims' <- getClaims jwt'
+    unless (iss' claims' == issuer')
         $ throwM $ ValidationException "issuer"
-    unless (clientId `elem` aud claims)
+    unless (clientId' `elem` aud' claims')
         $ throwM $ ValidationException "audience"
-    expire <- exp claims
+    expire <- exp' claims'
     now <- Jwt.IntDate <$> getPOSIXTime
     unless (now < expire)
         $ throwM $ ValidationException "expire"
-    return claims
+    return claims'
   where
     getJwk kid json =
         case kid of
@@ -150,12 +190,12 @@ validateIdToken oidc jwt mgr = do
                        Just i  -> i == e
                        Nothing -> False
 
-    iss c = fromMaybe "" (Jwt.jwtIss c)
-    aud c = fromMaybe [] (Jwt.jwtAud c)
-    exp c =
+    iss' c = fromJust (Jwt.jwtIss c)
+    aud' c = fromJust (Jwt.jwtAud c)
+    exp' c =
         case Jwt.jwtExp c of
             Nothing -> throwM $ ValidationException "exp claim was not found"
             Just ex -> return ex
-    issuer' = pack . issuer . oidcProviderConf $ oidc
-    clientId = decodeUtf8 . oidcClientId $ oidc
+    issuer' = pack . D.issuer . providerConf $ oidc
+    clientId' = decodeUtf8 . clientId $ oidc
 

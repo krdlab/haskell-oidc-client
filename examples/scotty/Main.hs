@@ -24,12 +24,12 @@ import Text.Blaze.Html.Renderer.Text (renderHtml)
 import Text.Blaze.Html5 ((!))
 import qualified Text.Blaze.Html5 as H
 import qualified Text.Blaze.Html5.Attributes as A
-import Web.OIDC.Client (OIDC(..), State, Code)
 import qualified Web.OIDC.Client as O
+import qualified Web.OIDC.Discovery as O
 import Web.Scotty (scotty, middleware, get, param, post, redirect, html, status, text)
 import Web.Scotty.Cookie (setSimpleCookie, getCookie)
 
-type SessionStateMap = Map Text State
+type SessionStateMap = Map Text O.State
 
 clientId, clientSecret :: ByteString
 clientId     = "your client id"
@@ -46,7 +46,7 @@ main = do
     let oidc = O.setCredentials clientId clientSecret redirectUri $ O.setProviderConf conf $ O.newOIDC (Just cprg)
     run oidc cprg ssm mgr
 
-run :: CPRG g => OIDC g -> IORef g -> IORef SessionStateMap -> Manager -> IO ()
+run :: CPRG g => O.OIDC g -> IORef g -> IORef SessionStateMap -> Manager -> IO ()
 run oidc cprg ssm mgr = scotty 3000 $ do
     middleware logStdoutDev
 
@@ -65,8 +65,8 @@ run oidc cprg ssm mgr = scotty 3000 $ do
         redirect $ pack . show $ loc
 
     get "/callback" $ do
-        code :: Code   <- param "code"
-        state :: State <- param "state"
+        code :: O.Code   <- param "code"
+        state :: O.State <- param "state"
         cookie <- getCookie "test-session"
         case cookie of
             Nothing  -> status401
@@ -77,7 +77,7 @@ run oidc cprg ssm mgr = scotty 3000 $ do
                         tokens <- liftIO $ O.requestTokens oidc code mgr
                         blaze $ do
                             H.h1 "Result"
-                            H.pre . H.toHtml . show . O.itClaims . O.idToken $ tokens
+                            H.pre . H.toHtml . show . O.claims . O.idToken $ tokens
                     else status401
 
   where
