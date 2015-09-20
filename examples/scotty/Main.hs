@@ -42,8 +42,8 @@ main = do
     cprg <- makeSystem >>= newIORef
     ssm  <- newIORef M.empty
     mgr  <- newManager tlsManagerSettings
-    conf <- O.discover O.google mgr
-    let oidc = O.setCredentials clientId clientSecret redirectUri $ O.setProviderConf conf $ O.newOIDC (Just cprg)
+    prov <- O.discover O.google mgr
+    let oidc = O.setCredentials clientId clientSecret redirectUri $ O.setProvider prov $ O.newOIDC (Just cprg)
     run oidc cprg ssm mgr
 
 run :: CPRG g => O.OIDC g -> IORef g -> IORef SessionStateMap -> Manager -> IO ()

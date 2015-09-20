@@ -9,9 +9,14 @@ module Web.OIDC.Discovery where
 import Control.Applicative ((<$>), (<*>))
 import Control.Monad (mzero)
 import Data.Aeson (FromJSON, parseJSON, Value(..), (.:), decode)
-import Data.Maybe (fromJust)
+import Data.Maybe (fromMaybe)
+import Data.Monoid (mempty)
+import qualified Jose.Jwk as Jwk
+import Jose.Jwk (Jwk)
 import Network.HTTP.Client (Manager, parseUrl, httpLbs, responseBody)
 import Web.OIDC.Types
+
+data Provider = Provider { configuration :: Configuration, jwkSet :: [Jwk] }
 
 data Configuration = Configuration
     { issuer                            :: String
@@ -45,8 +50,24 @@ instance FromJSON Configuration where
         <*> o .: "claims_supported"
     parseJSON _ = mzero
 
-discover :: OP -> Manager -> IO Configuration
-discover uri manager = do
-    req <- parseUrl uri
-    res <- httpLbs req manager
-    return $ fromJust . decode $ responseBody res
+discover :: OP -> Manager -> IO Provider
+discover endpoint manager = do
+    conf <- getConfiguration
+    case conf of
+        Just c  -> Provider c . jwks <$> getJwkSetJson (jwksUri c)
+        Nothing -> error "failed to decode" -- TODO
+  where
+    getConfiguration = do
+        req <- parseUrl endpoint
+        res <- httpLbs req manager
+        return $ decode $ responseBody res
+    getJwkSetJson url = do
+        req <- parseUrl url
+        res <- httpLbs req manager
+        return $ responseBody res
+    jwks j = fromMaybe single (Jwk.keys <$> decode j)
+      where
+        single = case decode j of
+                     Just k  -> return k
+                     Nothing -> mempty
+
