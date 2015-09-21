@@ -22,8 +22,10 @@ import Network.HTTP.Client (Manager, parseUrl, httpLbs, responseBody)
 import Web.OIDC.Types
 import Web.OIDC.Discovery.Providers as P
 
+-- | An OpenID provider
 data Provider = Provider { configuration :: Configuration, jwkSet :: [Jwk] }
 
+-- | An OpenID Provider Configuration
 data Configuration = Configuration
     { issuer                            :: String
     , authorizationEndpoint             :: String
@@ -56,7 +58,10 @@ instance FromJSON Configuration where
         <*> o .: "claims_supported"
     parseJSON _ = mzero
 
-discover :: OP -> Manager -> IO Provider
+discover
+    :: OP           -- ^ OpenID Provider's Issuer location
+    -> Manager
+    -> IO Provider
 discover endpoint manager = do
     conf <- getConfiguration
     case conf of
