@@ -36,7 +36,7 @@ data Configuration = Configuration
     , responseTypesSupported            :: [String]
     , subjectTypesSupported             :: [String]
     , idTokenSigningAlgValuesSupported  :: [String]
-    , scopesSupported                   :: [String]  -- TODO: Scope
+    , scopesSupported                   :: [ScopeValue]
     , tokenEndpointAuthMethodsSupported :: [String]
     , claimsSupported                   :: [String]
     }
