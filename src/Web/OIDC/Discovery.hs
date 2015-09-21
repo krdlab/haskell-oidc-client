@@ -4,7 +4,12 @@ Module: Web.OIDC.Discovery
 Maintainer: krdlab@gmail.com
 Stability: experimental
 -}
-module Web.OIDC.Discovery where
+module Web.OIDC.Discovery
+    ( Provider(..)
+    , Configuration(..)
+    , discover
+    , module P
+    ) where
 
 import Control.Applicative ((<$>), (<*>))
 import Control.Monad (mzero)
@@ -15,6 +20,7 @@ import qualified Jose.Jwk as Jwk
 import Jose.Jwk (Jwk)
 import Network.HTTP.Client (Manager, parseUrl, httpLbs, responseBody)
 import Web.OIDC.Types
+import Web.OIDC.Discovery.Providers as P
 
 data Provider = Provider { configuration :: Configuration, jwkSet :: [Jwk] }
 

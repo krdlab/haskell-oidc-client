@@ -36,10 +36,9 @@ import Network.HTTP.Client (parseUrl, getUri, setQueryString, applyBasicAuth, ur
 import Network.URI (URI)
 import Prelude hiding (exp)
 
-import qualified Web.OIDC.Discovery as D
-import Web.OIDC.Discovery.Providers as OIDC
-import Web.OIDC.Types as OIDC
 import qualified Web.OIDC.Client.Internal as I
+import qualified Web.OIDC.Discovery as D
+import Web.OIDC.Types as OIDC
 
 data (CPRG g) => OIDC g = OIDC
     { authorizationSeverUrl :: String
