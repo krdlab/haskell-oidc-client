@@ -17,7 +17,7 @@ module Web.OIDC.Client
 
 import Control.Applicative ((<$>))
 import Control.Monad (unless)
-import Control.Monad.Catch (MonadThrow, throwM)
+import Control.Monad.Catch (MonadThrow, throwM, MonadCatch, catch)
 import Crypto.Random (CPRG)
 import Data.Aeson (decode)
 import qualified Data.ByteString.Char8 as B
@@ -75,9 +75,9 @@ setCredentials cid secret redirect oidc =
          , redirectUri  = redirect
          }
 
-getAuthenticationRequestUrl :: (CPRG g, MonadThrow m) => OIDC g -> Scope -> Maybe State -> RequestParameters -> m URI
+getAuthenticationRequestUrl :: (CPRG g, MonadThrow m, MonadCatch m) => OIDC g -> Scope -> Maybe State -> RequestParameters -> m URI
 getAuthenticationRequestUrl oidc scope state params = do
-    req <- parseUrl endpoint
+    req <- parseUrl endpoint `catch` rethrow
     return $ getUri $ setQueryString query req
   where
     endpoint  = authorizationSeverUrl oidc
@@ -97,17 +97,19 @@ getAuthenticationRequestUrl oidc scope state params = do
 
 requestTokens :: CPRG g => OIDC g -> Code -> Manager -> IO Tokens
 requestTokens oidc code manager = do
-    req <- parseUrl endpoint
-    let req' = applyBasicAuth cid csec $ urlEncodedBody body $ req { method = "POST" }
-
-    res <- httpLbs req' manager
-    let tokensJson = fromJust . decode $ responseBody res
-
-    validate oidc tokensJson
+    json <- getTokensJson `catch` rethrow
+    case decode json of
+        Just ts -> validate oidc ts
+        Nothing -> error "failed to decode tokens json" -- TODO
   where
+    getTokensJson = do
+        req <- parseUrl endpoint
+        let req' = applyBasicAuth cid sec $ urlEncodedBody body $ req { method = "POST" }
+        res <- httpLbs req' manager
+        return $ responseBody res
     endpoint = tokenEndpoint oidc
     cid      = clientId oidc
-    csec     = clientSecret oidc
+    sec      = clientSecret oidc
     redirect = redirectUri oidc
     body     =
         [ ("grant_type",   "authorization_code")

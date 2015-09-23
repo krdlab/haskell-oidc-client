@@ -18,10 +18,12 @@ module Web.OIDC.Types
     , IdTokenClaims(..)
     , toIdTokenClaims
     , OpenIdException(..)
+    , rethrow
     ) where
 
 import Control.Applicative ((<*), (*>), (<|>))
 import Control.Exception (Exception)
+import Control.Monad.Catch (throwM, MonadCatch)
 import Data.Aeson (FromJSON, parseJSON, withText)
 import Data.Attoparsec.Text (parseOnly, endOfInput, string)
 import Data.ByteString (ByteString)
@@ -30,6 +32,7 @@ import Data.Maybe (fromJust)
 import Data.Text (unpack, pack)
 import Data.Typeable (Typeable)
 import Jose.Jwt (Jwt, JwtClaims(..), JwtError, IntDate)
+import Network.HTTP.Client (HttpException)
 import Prelude hiding (exp)
 
 type OP = String
@@ -121,9 +124,13 @@ toIdTokenClaims c = IdTokenClaims
     }
 
 data OpenIdException =
-      JwtExceptoin JwtError
+      DiscoveryException String
+    | InternalHttpException HttpException
+    | JwtExceptoin JwtError
     | ValidationException String
   deriving (Show, Typeable)
 
 instance Exception OpenIdException
 
+rethrow :: (MonadCatch m) => HttpException -> m a
+rethrow = throwM . InternalHttpException

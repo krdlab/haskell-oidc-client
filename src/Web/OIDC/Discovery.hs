@@ -13,6 +13,7 @@ module Web.OIDC.Discovery
 
 import Control.Applicative ((<$>), (<*>))
 import Control.Monad (mzero)
+import Control.Monad.Catch (throwM, catch)
 import Data.Aeson (FromJSON, parseJSON, Value(..), (.:), decode)
 import Data.Maybe (fromMaybe)
 import Data.Monoid (mempty)
@@ -63,10 +64,10 @@ discover
     -> Manager
     -> IO Provider
 discover endpoint manager = do
-    conf <- getConfiguration
+    conf <- getConfiguration `catch` rethrow
     case conf of
-        Just c  -> Provider c . jwks <$> getJwkSetJson (jwksUri c)
-        Nothing -> error "failed to decode" -- TODO
+        Just c  -> Provider c . jwks <$> getJwkSetJson (jwksUri c) `catch` rethrow
+        Nothing -> throwM $ DiscoveryException "failed to decode configuration"
   where
     getConfiguration = do
         req <- parseUrl endpoint
@@ -81,4 +82,3 @@ discover endpoint manager = do
         single = case decode j of
                      Just k  -> return k
                      Nothing -> mempty
-
