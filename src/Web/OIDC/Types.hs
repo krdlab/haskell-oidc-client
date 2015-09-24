@@ -107,9 +107,7 @@ type Scope = [ScopeValue]
 
 type State = ByteString
 
-type Parameter = ByteString
-
-type RequestParameters = [(Parameter, Maybe ByteString)]
+type Parameters = [(ByteString, Maybe ByteString)]
 
 type Code = ByteString
 

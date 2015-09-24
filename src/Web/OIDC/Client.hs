@@ -12,7 +12,7 @@ module Web.OIDC.Client
     , Provider
     , Scope, ScopeValue(..)
     , Code, State
-    , RequestParameters
+    , Parameters
     , Tokens(..), IdToken(..), IdTokenClaims(..)
     , OpenIdException(..)
     , getAuthenticationRequestUrl
@@ -44,7 +44,7 @@ import Prelude hiding (exp)
 import qualified Web.OIDC.Client.Internal as I
 import qualified Web.OIDC.Discovery as D
 import qualified Web.OIDC.Types as OT
-import Web.OIDC.Types (Provider, Scope, ScopeValue(..), Code, State, RequestParameters, Tokens(..), IdToken(..), IdTokenClaims(..), OpenIdException(..))
+import Web.OIDC.Types (Provider, Scope, ScopeValue(..), Code, State, Parameters, Tokens(..), IdToken(..), IdTokenClaims(..), OpenIdException(..))
 
 data (CPRG g) => OIDC g = OIDC
     { authorizationSeverUrl :: String
@@ -81,7 +81,7 @@ setCredentials cid secret redirect oidc =
          , redirectUri  = redirect
          }
 
-getAuthenticationRequestUrl :: (CPRG g, MonadThrow m, MonadCatch m) => OIDC g -> Scope -> Maybe State -> RequestParameters -> m URI
+getAuthenticationRequestUrl :: (CPRG g, MonadThrow m, MonadCatch m) => OIDC g -> Scope -> Maybe State -> Parameters -> m URI
 getAuthenticationRequestUrl oidc scope state params = do
     req <- parseUrl endpoint `catch` OT.rethrow
     return $ getUri $ setQueryString query req
