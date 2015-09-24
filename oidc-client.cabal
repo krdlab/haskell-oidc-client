@@ -27,7 +27,7 @@ library
     , Web.OIDC.Discovery
   other-modules:
       Web.OIDC.Client.Internal
-    , Web.OIDC.Discovery.Providers
+    , Web.OIDC.Discovery.Issuers
     , Web.OIDC.Types
   build-depends:
       base >=4.7 && <5

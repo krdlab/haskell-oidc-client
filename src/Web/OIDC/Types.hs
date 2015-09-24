@@ -23,14 +23,14 @@ import Jose.Jwt (Jwt, JwtClaims(..), JwtError, IntDate)
 import Network.HTTP.Client (HttpException)
 import Prelude hiding (exp)
 
-type OP = String
+type IssuerLocation = String
 
 -- | An OpenID provider
 data Provider = Provider { configuration :: Configuration, jwkSet :: [Jwk] }
 
 -- | An OpenID Provider Configuration
 data Configuration = Configuration
-    { issuer                            :: String
+    { issuer                            :: IssuerLocation
     , authorizationEndpoint             :: String
     , tokenEndpoint                     :: String
     , userinfoEndpoint                  :: String
