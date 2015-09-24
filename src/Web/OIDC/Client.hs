@@ -5,7 +5,7 @@ Maintainer: krdlab@gmail.com
 Stability: experimental
 -}
 module Web.OIDC.Client
-    ( OIDC(..)
+    ( OIDC
     , newOIDC
     , setProvider
     , setCredentials
