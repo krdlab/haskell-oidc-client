@@ -9,9 +9,14 @@ module Web.OIDC.Client
     , newOIDC
     , setProvider
     , setCredentials
+    , Provider
+    , Scope, ScopeValue(..)
+    , Code, State
+    , RequestParameters
+    , Tokens(..), IdToken(..), IdTokenClaims(..)
+    , OpenIdException(..)
     , getAuthenticationRequestUrl
     , requestTokens
-    , module OIDC
     , module Jose.Jwt
     ) where
 
@@ -38,7 +43,8 @@ import Prelude hiding (exp)
 
 import qualified Web.OIDC.Client.Internal as I
 import qualified Web.OIDC.Discovery as D
-import Web.OIDC.Types as OIDC
+import qualified Web.OIDC.Types as OT
+import Web.OIDC.Types (Provider, Scope, ScopeValue(..), Code, State, RequestParameters, Tokens(..), IdToken(..), IdTokenClaims(..), OpenIdException(..))
 
 data (CPRG g) => OIDC g = OIDC
     { authorizationSeverUrl :: String
@@ -61,11 +67,11 @@ newOIDC ref = OIDC
     , cprgRef               = ref
     }
 
-setProvider :: CPRG g => D.Provider -> OIDC g -> OIDC g
+setProvider :: CPRG g => Provider -> OIDC g -> OIDC g
 setProvider p oidc =
-    oidc { authorizationSeverUrl    = D.authorizationEndpoint . D.configuration $ p
-         , tokenEndpoint            = D.tokenEndpoint . D.configuration $ p
-         , provider                 = p
+    oidc { authorizationSeverUrl = OT.authorizationEndpoint . OT.configuration $ p
+         , tokenEndpoint         = OT.tokenEndpoint . OT.configuration $ p
+         , provider              = p
          }
 
 setCredentials :: CPRG g => ByteString -> ByteString -> ByteString -> OIDC g -> OIDC g
@@ -77,7 +83,7 @@ setCredentials cid secret redirect oidc =
 
 getAuthenticationRequestUrl :: (CPRG g, MonadThrow m, MonadCatch m) => OIDC g -> Scope -> Maybe State -> RequestParameters -> m URI
 getAuthenticationRequestUrl oidc scope state params = do
-    req <- parseUrl endpoint `catch` rethrow
+    req <- parseUrl endpoint `catch` OT.rethrow
     return $ getUri $ setQueryString query req
   where
     endpoint  = authorizationSeverUrl oidc
@@ -97,7 +103,7 @@ getAuthenticationRequestUrl oidc scope state params = do
 
 requestTokens :: CPRG g => OIDC g -> Code -> Manager -> IO Tokens
 requestTokens oidc code manager = do
-    json <- getTokensJson `catch` rethrow
+    json <- getTokensJson `catch` OT.rethrow
     case decode json of
         Just ts -> validate oidc ts
         Nothing -> error "failed to decode tokens json" -- TODO
@@ -122,11 +128,11 @@ validate oidc tres = do
     let jwt' = I.idToken tres
     claims' <- validateIdToken oidc jwt'
     let tokens = Tokens {
-          OIDC.accessToken  = I.accessToken tres
-        , OIDC.tokenType    = I.tokenType tres
-        , OIDC.idToken      = IdToken { claims = toIdTokenClaims claims', jwt = jwt' }
-        , OIDC.expiresIn    = I.expiresIn tres
-        , OIDC.refreshToken = I.refreshToken tres
+          accessToken  = I.accessToken tres
+        , tokenType    = I.tokenType tres
+        , idToken      = IdToken { claims = OT.toIdTokenClaims claims', jwt = jwt' }
+        , expiresIn    = I.expiresIn tres
+        , refreshToken = I.refreshToken tres
         }
     return tokens
 
@@ -141,13 +147,13 @@ validateIdToken oidc jwt' = do
                         (Jwt.JwsH jws) -> do
                             let kid = Jwt.jwsKid jws
                                 alg = Jwt.jwsAlg jws
-                                jwk = getJwk kid (D.jwkSet . provider $ oidc)
+                                jwk = getJwk kid (OT.jwkSet . provider $ oidc)
                             atomicModifyIORef' crpg $ \g -> swap (Jwt.decode g [jwk] (Just $ Jwt.JwsEncoding alg) (Jwt.unJwt jwt'))
                         (Jwt.JweH jwe) -> do
                             let kid = Jwt.jweKid jwe
                                 alg = Jwt.jweAlg jwe
                                 enc = Jwt.jweEnc jwe
-                                jwk = getJwk kid (D.jwkSet . provider $ oidc)
+                                jwk = getJwk kid (OT.jwkSet . provider $ oidc)
                             atomicModifyIORef' crpg $ \g -> swap (Jwt.decode g [jwk] (Just $ Jwt.JweEncoding alg enc) (Jwt.unJwt jwt'))
                         _ -> error "not supported"
             case decoded of
@@ -180,7 +186,7 @@ validateIdToken oidc jwt' = do
                     Right (_, c) -> return c
                     Left  cause  -> throwM $ JwtExceptoin cause
 
-    issuer'   = pack . D.issuer . D.configuration . provider $ oidc
+    issuer'   = pack . OT.issuer . OT.configuration . provider $ oidc
     clientId' = decodeUtf8 . clientId $ oidc
 
     getIss c = fromJust (Jwt.jwtIss c)

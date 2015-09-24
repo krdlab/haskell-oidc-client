@@ -5,37 +5,61 @@ Module: Web.OIDC.Types
 Maintainer: krdlab@gmail.com
 Stability: experimental
 -}
-module Web.OIDC.Types
-    ( OP
-    , Scope
-    , ScopeValue(..)
-    , State
-    , Parameter
-    , RequestParameters
-    , Code
-    , Tokens(..)
-    , IdToken(..)
-    , IdTokenClaims(..)
-    , toIdTokenClaims
-    , OpenIdException(..)
-    , rethrow
-    ) where
+module Web.OIDC.Types where
 
-import Control.Applicative ((<*), (*>), (<|>))
+import Control.Applicative ((<$>), (<*>), (<*), (*>), (<|>))
 import Control.Exception (Exception)
+import Control.Monad (mzero)
 import Control.Monad.Catch (throwM, MonadCatch)
-import Data.Aeson (FromJSON, parseJSON, withText)
+import Data.Aeson (FromJSON, parseJSON, withText, Value(..), (.:))
 import Data.Attoparsec.Text (parseOnly, endOfInput, string)
 import Data.ByteString (ByteString)
 import Data.List (isPrefixOf)
 import Data.Maybe (fromJust)
 import Data.Text (unpack, pack)
 import Data.Typeable (Typeable)
+import Jose.Jwk (Jwk)
 import Jose.Jwt (Jwt, JwtClaims(..), JwtError, IntDate)
 import Network.HTTP.Client (HttpException)
 import Prelude hiding (exp)
 
 type OP = String
+
+-- | An OpenID provider
+data Provider = Provider { configuration :: Configuration, jwkSet :: [Jwk] }
+
+-- | An OpenID Provider Configuration
+data Configuration = Configuration
+    { issuer                            :: String
+    , authorizationEndpoint             :: String
+    , tokenEndpoint                     :: String
+    , userinfoEndpoint                  :: String
+    , revocationEndpoint                :: String
+    , jwksUri                           :: String
+    , responseTypesSupported            :: [String]
+    , subjectTypesSupported             :: [String]
+    , idTokenSigningAlgValuesSupported  :: [String]
+    , scopesSupported                   :: [ScopeValue]
+    , tokenEndpointAuthMethodsSupported :: [String]
+    , claimsSupported                   :: [String]
+    }
+  deriving (Show, Eq)
+
+instance FromJSON Configuration where
+    parseJSON (Object o) = Configuration
+        <$> o .: "issuer"
+        <*> o .: "authorization_endpoint"
+        <*> o .: "token_endpoint"
+        <*> o .: "userinfo_endpoint"
+        <*> o .: "revocation_endpoint"
+        <*> o .: "jwks_uri"
+        <*> o .: "response_types_supported"
+        <*> o .: "subject_types_supported"
+        <*> o .: "id_token_signing_alg_values_supported"
+        <*> o .: "scopes_supported"
+        <*> o .: "token_endpoint_auth_methods_supported"
+        <*> o .: "claims_supported"
+    parseJSON _ = mzero
 
 data ScopeValue =
       OpenId
