@@ -9,6 +9,7 @@ import Crypto.Random.AESCtr (makeSystem)
 import Crypto.Random.API (CPRG, cprgGenBytes)
 import Data.ByteString (ByteString)
 import Data.ByteString.Base32 (encode)
+import qualified Data.ByteString.Char8 as B
 import Data.IORef (IORef, newIORef, atomicModifyIORef', readIORef)
 import Data.Map (Map)
 import qualified Data.Map as M
@@ -20,6 +21,7 @@ import Network.HTTP.Client (newManager, Manager)
 import Network.HTTP.Client.TLS (tlsManagerSettings)
 import Network.HTTP.Types (badRequest400)
 import Network.Wai.Middleware.RequestLogger (logStdoutDev)
+import System.Environment (getEnv)
 import Text.Blaze.Html.Renderer.Text (renderHtml)
 import Text.Blaze.Html5 ((!))
 import qualified Text.Blaze.Html5 as H
@@ -31,19 +33,20 @@ import Web.Scotty.Cookie (setSimpleCookie, getCookie)
 
 type SessionStateMap = Map Text O.State
 
-clientId, clientSecret :: ByteString
-clientId     = "your client id"
-clientSecret = "your client secret"
 redirectUri :: ByteString
 redirectUri  = "http://localhost:3000/callback"
 
 main :: IO ()
 main = do
+    clientId     <- B.pack <$> getEnv "OPENID_CLIENT_ID"
+    clientSecret <- B.pack <$> getEnv "OPENID_CLIENT_SECRET"
+
     cprg <- makeSystem >>= newIORef
     ssm  <- newIORef M.empty
     mgr  <- newManager tlsManagerSettings
     prov <- O.discover O.google mgr
     let oidc = O.setCredentials clientId clientSecret redirectUri $ O.setProvider prov $ O.newOIDC (Just cprg)
+
     run oidc cprg ssm mgr
 
 run :: CPRG g => O.OIDC g -> IORef g -> IORef SessionStateMap -> Manager -> IO ()
