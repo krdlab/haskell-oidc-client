@@ -37,20 +37,20 @@ library
     , Web.OIDC.Discovery.Issuers
     , Web.OIDC.Types
   build-depends:
-      base >=4.7 && <5
-    , bytestring
-    , text
-    , aeson
-    , attoparsec
+      base              >=4.7 && <5
+    , bytestring        >=0.10 && <0.11
+    , text              >=1.2 && <1.3
+    , aeson             >=0.9
+    , attoparsec        >=0.12
     , exceptions
     , http-client
-    , tls >=1.3.2
+    , tls               >=1.3.2
     , http-client-tls
-    , jose-jwt >=0.6.2
+    , jose-jwt          >=0.6.2
     , time
     , crypto-random
     , cprng-aes
-  if  flag(network-uri)
+  if flag(network-uri)
     build-depends: network-uri >=2.6, network >=2.6
   else
     build-depends: network-uri <2.6, network <2.6
@@ -71,7 +71,7 @@ executable scotty-example
   hs-source-dirs:   examples/scotty/
   if flag(build-examples)
     build-depends:
-        base >=4.7 && <5
+        base                >=4.7 && <5
       , oidc-client
       , bytestring
       , text
@@ -86,7 +86,7 @@ executable scotty-example
       , base32-bytestring
       , http-types
       , http-client
-      , tls >=1.3.2
+      , tls                 >=1.3.2
       , http-client-tls
   else
     buildable: False
