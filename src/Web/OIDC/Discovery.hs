@@ -5,8 +5,9 @@ Maintainer: krdlab@gmail.com
 Stability: experimental
 -}
 module Web.OIDC.Discovery
-    ( Provider
-    , discover
+    ( discover
+    , IssuerLocation
+    , Provider
     , module I
     ) where
 
@@ -20,6 +21,7 @@ import Network.HTTP.Client (Manager, parseUrl, httpLbs, responseBody)
 import Web.OIDC.Types
 import Web.OIDC.Discovery.Issuers as I
 
+-- | Obtain OpenID Provider configuration and JWK set.
 discover
     :: IssuerLocation   -- ^ OpenID Provider's Issuer location
     -> Manager

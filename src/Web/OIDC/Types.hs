@@ -25,7 +25,7 @@ import Prelude hiding (exp)
 
 type IssuerLocation = String
 
--- | An OpenID provider
+-- | An OpenID Provider information
 data Provider = Provider { configuration :: Configuration, jwkSet :: [Jwk] }
 
 -- | An OpenID Provider Configuration
