@@ -23,6 +23,9 @@ source-repository head
 flag network-uri
   default: True
 
+flag build-examples
+  default: False
+
 library
   hs-source-dirs:      src
   default-language:    Haskell2010
@@ -62,3 +65,28 @@ test-suite oidc-client-spec
       base
     , hspec
     , oidc-client
+
+executable scotty-example
+  main-is:          Main.hs
+  hs-source-dirs:   examples/scotty/
+  if flag(build-examples)
+    build-depends:
+        base >=4.7 && <5
+      , oidc-client
+      , bytestring
+      , text
+      , containers
+      , transformers
+      , wai-extra
+      , scotty
+      , scotty-cookie
+      , blaze-html
+      , cprng-aes
+      , crypto-random
+      , base32-bytestring
+      , http-types
+      , http-client
+      , tls >=1.3.2
+      , http-client-tls
+  else
+    buildable: False
