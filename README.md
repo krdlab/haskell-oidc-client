@@ -16,7 +16,7 @@ To be prepared.
 
 ```sh
 $ cabal sandbox init
-$ cabal install --only-dependencies --fbuild-examples
-$ cabal configure --fbuild-examples
+$ cabal install --only-dependencies -fbuild-examples
+$ cabal configure -fbuild-examples
 $ cabal build
 ```
