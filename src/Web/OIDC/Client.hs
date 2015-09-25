@@ -5,18 +5,26 @@ Maintainer: krdlab@gmail.com
 Stability: experimental
 -}
 module Web.OIDC.Client
-    ( OIDC
+    (
+    -- * Client Obtains ID Token and Access Token
+      OIDC
     , newOIDC
     , setProvider
     , setCredentials
+    , getAuthenticationRequestUrl
+    , requestTokens
+
+    -- * Types
     , Provider
     , Scope, ScopeValue(..)
     , Code, State
     , Parameters
     , Tokens(..), IdToken(..), IdTokenClaims(..)
+
+    -- * Exception
     , OpenIdException(..)
-    , getAuthenticationRequestUrl
-    , requestTokens
+
+    -- * Re-exports
     , module Jose.Jwt
     ) where
 
@@ -46,6 +54,9 @@ import qualified Web.OIDC.Discovery as D
 import qualified Web.OIDC.Types as OT
 import Web.OIDC.Types (Provider, Scope, ScopeValue(..), Code, State, Parameters, Tokens(..), IdToken(..), IdTokenClaims(..), OpenIdException(..))
 
+-- | This data type has values that are needed in the OpenID Flow.
+--
+-- You should obtain it by using 'newOIDC'.
 data (CPRG g) => OIDC g = OIDC
     { authorizationSeverUrl :: String
     , tokenEndpoint         :: String
@@ -56,6 +67,9 @@ data (CPRG g) => OIDC g = OIDC
     , cprgRef               :: Maybe (IORef g)
     }
 
+-- | Create OIDC.
+--
+-- First argument is used in a token decoding on ID Token Validation.
 newOIDC :: CPRG g => Maybe (IORef g) -> OIDC g
 newOIDC ref = OIDC
     { authorizationSeverUrl = error "You must specify authorizationSeverUrl"
@@ -67,14 +81,24 @@ newOIDC ref = OIDC
     , cprgRef               = ref
     }
 
-setProvider :: CPRG g => Provider -> OIDC g -> OIDC g
+setProvider
+    :: CPRG g
+    => Provider     -- ^ OP's information (obtain by 'discover')
+    -> OIDC g
+    -> OIDC g
 setProvider p oidc =
     oidc { authorizationSeverUrl = OT.authorizationEndpoint . OT.configuration $ p
          , tokenEndpoint         = OT.tokenEndpoint . OT.configuration $ p
          , provider              = p
          }
 
-setCredentials :: CPRG g => ByteString -> ByteString -> ByteString -> OIDC g -> OIDC g
+setCredentials
+    :: CPRG g
+    => ByteString   -- ^ client ID
+    -> ByteString   -- ^ client secret
+    -> ByteString   -- ^ redirect URI
+    -> OIDC g
+    -> OIDC g
 setCredentials cid secret redirect oidc =
     oidc { clientId     = cid
          , clientSecret = secret
@@ -101,6 +125,10 @@ getAuthenticationRequestUrl oidc scope state params = do
 
 -- TODO: error response
 
+-- | Request and obtain valid tokens.
+--
+-- This function requests ID Token and Access Token to a OP's token endpoint, and validates the received ID Token.
+-- Returned value is a valid tokens.
 requestTokens :: CPRG g => OIDC g -> Code -> Manager -> IO Tokens
 requestTokens oidc code manager = do
     json <- getTokensJson `catch` OT.rethrow
