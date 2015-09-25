@@ -10,9 +10,9 @@ This package uses [jose-jwt](http://github.com/tekul/jose-jwt) package for decod
 
 To be prepared.
 
-## Build examples
+## Run example
 
-`examples` is a runnable code. If you try to run it, execute commands as follows:
+`examples/scotty` is a runnable code. If you try to run it, execute commands as follows:
 
 ```sh
 $ cabal sandbox init
@@ -20,3 +20,13 @@ $ cabal install --only-dependencies -fbuild-examples
 $ cabal configure -fbuild-examples
 $ cabal build
 ```
+
+and then
+
+```sh
+$ export OPENID_CLIENT_ID="Your client ID"
+$ export OPENID_CLIENT_SECRET="Your client secret"
+$ cabal run scotty-example
+```
+
+You can access to <http://localhost:3000/login>.
