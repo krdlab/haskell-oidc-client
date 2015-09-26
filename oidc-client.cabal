@@ -49,7 +49,6 @@ library
     , jose-jwt          >=0.6.2
     , time
     , crypto-random
-    , cprng-aes
   if flag(network-uri)
     build-depends: network-uri >=2.6, network >=2.6
   else
