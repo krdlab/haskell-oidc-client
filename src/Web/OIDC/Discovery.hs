@@ -21,7 +21,7 @@ import Network.HTTP.Client (Manager, parseUrl, httpLbs, responseBody)
 import Web.OIDC.Types
 import Web.OIDC.Discovery.Issuers as I
 
--- | Obtain OpenID Provider configuration and JWK set.
+-- | This function obtains OpenID Provider configuration and JWK set.
 discover
     :: IssuerLocation   -- ^ OpenID Provider's Issuer location
     -> Manager

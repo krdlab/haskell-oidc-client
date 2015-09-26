@@ -32,9 +32,9 @@ library
   exposed-modules:
       Web.OIDC.Client
     , Web.OIDC.Discovery
+    , Web.OIDC.Discovery.Issuers
   other-modules:
       Web.OIDC.Client.Internal
-    , Web.OIDC.Discovery.Issuers
     , Web.OIDC.Types
   build-depends:
       base              >=4.7 && <5

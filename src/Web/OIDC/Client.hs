@@ -56,8 +56,6 @@ import qualified Web.OIDC.Types as OT
 import Web.OIDC.Types (Provider, Scope, ScopeValue(..), Code, State, Parameters, Tokens(..), IdToken(..), IdTokenClaims(..), OpenIdException(..))
 
 -- | This data type represents information needed in the OpenID flow.
---
--- You should obtain it by using 'newOIDC'.
 data OIDC = OIDC
     { authorizationSeverUrl :: String
     , tokenEndpoint         :: String
