@@ -45,11 +45,11 @@ main = do
     ssm  <- newIORef M.empty
     mgr  <- newManager tlsManagerSettings
     prov <- O.discover O.google mgr
-    let oidc = O.setCredentials clientId clientSecret redirectUri $ O.setProvider prov $ O.newOIDC (Just cprg)
+    let oidc = O.setCredentials clientId clientSecret redirectUri $ O.setProvider prov $ O.newOIDC cprg
 
     run oidc cprg ssm mgr
 
-run :: CPRG g => O.OIDC g -> IORef g -> IORef SessionStateMap -> Manager -> IO ()
+run :: CPRG g => O.OIDC -> IORef g -> IORef SessionStateMap -> Manager -> IO ()
 run oidc cprg ssm mgr = scotty 3000 $ do
     middleware logStdoutDev
 
@@ -68,7 +68,7 @@ run oidc cprg ssm mgr = scotty 3000 $ do
         redirect $ pack . show $ loc
 
     get "/callback" $ do
-        code :: O.Code   <- param "code"
+        code  :: O.Code  <- param "code"
         state :: O.State <- param "state"
         cookie <- getCookie "test-session"
         case cookie of

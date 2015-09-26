@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE GADTs #-}
 {-|
 Module: Web.OIDC.Client
 Maintainer: krdlab@gmail.com
@@ -9,6 +10,7 @@ module Web.OIDC.Client
     -- * Client Obtains ID Token and Access Token
       OIDC
     , newOIDC
+    , newOIDC'
     , setProvider
     , setCredentials
     , getAuthenticationRequestUrl
@@ -50,42 +52,50 @@ import Network.URI (URI)
 import Prelude hiding (exp)
 
 import qualified Web.OIDC.Client.Internal as I
-import qualified Web.OIDC.Discovery as D
 import qualified Web.OIDC.Types as OT
 import Web.OIDC.Types (Provider, Scope, ScopeValue(..), Code, State, Parameters, Tokens(..), IdToken(..), IdTokenClaims(..), OpenIdException(..))
 
 -- | This data type represents information needed in the OpenID flow.
 --
 -- You should obtain it by using 'newOIDC'.
-data (CPRG g) => OIDC g = OIDC
+data OIDC = OIDC
     { authorizationSeverUrl :: String
     , tokenEndpoint         :: String
     , clientId              :: ByteString
     , clientSecret          :: ByteString
     , redirectUri           :: ByteString
-    , provider              :: D.Provider
-    , cprgRef               :: Maybe (IORef g)
+    , provider              :: Provider
+    , cprgRef               :: CPRGRef
     }
 
--- | Create OIDC.
---
--- First argument is used in a token decoding on ID Token Validation.
-newOIDC :: CPRG g => Maybe (IORef g) -> OIDC g
-newOIDC ref = OIDC
+data CPRGRef where
+    Ref   :: (CPRG g) => IORef g -> CPRGRef
+    NoRef :: CPRGRef
+
+def :: OIDC
+def = OIDC
     { authorizationSeverUrl = error "You must specify authorizationSeverUrl"
     , tokenEndpoint         = error "You must specify tokenEndpoint"
     , clientId              = error "You must specify clientId"
     , clientSecret          = error "You must specify clientSecret"
     , redirectUri           = error "You must specify redirectUri"
     , provider              = error "You must specify provider"
-    , cprgRef               = ref
+    , cprgRef               = NoRef
     }
 
+-- | Create OIDC.
+--
+-- First argument is used in a token decoding on ID Token Validation.
+newOIDC :: CPRG g => IORef g -> OIDC
+newOIDC ref = def { cprgRef = Ref ref }
+
+newOIDC' :: OIDC
+newOIDC' = def
+
 setProvider
-    :: CPRG g
-    => Provider     -- ^ OP's information (obtain by 'discover')
-    -> OIDC g
-    -> OIDC g
+    :: Provider     -- ^ OP's information (obtain by 'discover')
+    -> OIDC
+    -> OIDC
 setProvider p oidc =
     oidc { authorizationSeverUrl = OT.authorizationEndpoint . OT.configuration $ p
          , tokenEndpoint         = OT.tokenEndpoint . OT.configuration $ p
@@ -93,19 +103,18 @@ setProvider p oidc =
          }
 
 setCredentials
-    :: CPRG g
-    => ByteString   -- ^ client ID
+    :: ByteString   -- ^ client ID
     -> ByteString   -- ^ client secret
     -> ByteString   -- ^ redirect URI
-    -> OIDC g
-    -> OIDC g
+    -> OIDC
+    -> OIDC
 setCredentials cid secret redirect oidc =
     oidc { clientId     = cid
          , clientSecret = secret
          , redirectUri  = redirect
          }
 
-getAuthenticationRequestUrl :: (CPRG g, MonadThrow m, MonadCatch m) => OIDC g -> Scope -> Maybe State -> Parameters -> m URI
+getAuthenticationRequestUrl :: (MonadThrow m, MonadCatch m) => OIDC -> Scope -> Maybe State -> Parameters -> m URI
 getAuthenticationRequestUrl oidc scope state params = do
     req <- parseUrl endpoint `catch` OT.rethrow
     return $ getUri $ setQueryString query req
@@ -129,7 +138,7 @@ getAuthenticationRequestUrl oidc scope state params = do
 --
 -- This function requests ID Token and Access Token to a OP's token endpoint, and validates the received ID Token.
 -- Returned value is a valid tokens.
-requestTokens :: CPRG g => OIDC g -> Code -> Manager -> IO Tokens
+requestTokens :: OIDC -> Code -> Manager -> IO Tokens
 requestTokens oidc code manager = do
     json <- getTokensJson `catch` OT.rethrow
     case decode json of
@@ -151,7 +160,7 @@ requestTokens oidc code manager = do
         , ("redirect_uri", redirect)
         ]
 
-validate :: CPRG g => OIDC g -> I.TokensResponse -> IO Tokens
+validate :: OIDC -> I.TokensResponse -> IO Tokens
 validate oidc tres = do
     let jwt' = I.idToken tres
     claims' <- validateIdToken oidc jwt'
@@ -164,10 +173,10 @@ validate oidc tres = do
         }
     return tokens
 
-validateIdToken :: CPRG g => OIDC g -> Jwt -> IO Jwt.JwtClaims
+validateIdToken :: OIDC -> Jwt -> IO Jwt.JwtClaims
 validateIdToken oidc jwt' = do
     case cprgRef oidc of
-        Just crpg -> do
+        Ref crpg -> do
             decoded <- case Jwt.decodeClaims (Jwt.unJwt jwt') of
                 Left  cause     -> throwM $ JwtExceptoin cause
                 Right (jwth, _) ->
@@ -187,7 +196,7 @@ validateIdToken oidc jwt' = do
             case decoded of
                 Left err -> throwM $ JwtExceptoin err
                 Right _  -> return ()
-        Nothing -> error "not implemented" -- TODO: request tokeninfo
+        NoRef -> error "not implemented" -- TODO: request tokeninfo
 
     claims' <- getClaims
 
