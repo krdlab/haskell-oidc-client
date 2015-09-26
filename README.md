@@ -8,7 +8,12 @@ This package uses [jose-jwt](http://github.com/tekul/jose-jwt) package for decod
 
 ## Usage
 
-To be prepared.
+```sh
+$ cabal update
+$ cabal install oidc-client
+```
+
+The documentation is available in [Hackage](https://hackage.haskell.org/package/oidc-client) or [this URL](http://krdlab.github.io/haskell-oidc-client/).
 
 ## Run example
 
