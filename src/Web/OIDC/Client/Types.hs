@@ -1,11 +1,11 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DeriveDataTypeable #-}
 {-|
-Module: Web.OIDC.Types
+Module: Web.OIDC.Client.Types
 Maintainer: krdlab@gmail.com
 Stability: experimental
 -}
-module Web.OIDC.Types where
+module Web.OIDC.Client.Types where
 
 import Control.Applicative ((<$>), (<*>), (<*), (*>), (<|>))
 import Control.Exception (Exception)

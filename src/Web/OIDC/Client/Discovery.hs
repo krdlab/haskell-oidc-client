@@ -1,10 +1,10 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-|
-Module: Web.OIDC.Discovery
+Module: Web.OIDC.Client.Discovery
 Maintainer: krdlab@gmail.com
 Stability: experimental
 -}
-module Web.OIDC.Discovery
+module Web.OIDC.Client.Discovery
     ( discover
     , IssuerLocation
     , Provider
@@ -18,8 +18,8 @@ import Data.Maybe (fromMaybe)
 import Data.Monoid (mempty)
 import qualified Jose.Jwk as Jwk
 import Network.HTTP.Client (Manager, parseUrl, httpLbs, responseBody)
-import Web.OIDC.Types
-import Web.OIDC.Discovery.Issuers as I
+import Web.OIDC.Client.Types
+import Web.OIDC.Client.Discovery.Issuers as I
 
 -- | This function obtains OpenID Provider configuration and JWK set.
 discover

@@ -52,8 +52,8 @@ import Network.URI (URI)
 import Prelude hiding (exp)
 
 import qualified Web.OIDC.Client.Internal as I
-import qualified Web.OIDC.Types as OT
-import Web.OIDC.Types (Provider, Scope, ScopeValue(..), Code, State, Parameters, Tokens(..), IdToken(..), IdTokenClaims(..), OpenIdException(..))
+import qualified Web.OIDC.Client.Types as OT
+import Web.OIDC.Client.Types (Provider, Scope, ScopeValue(..), Code, State, Parameters, Tokens(..), IdToken(..), IdTokenClaims(..), OpenIdException(..))
 
 -- | This data type represents information needed in the OpenID flow.
 data OIDC = OIDC

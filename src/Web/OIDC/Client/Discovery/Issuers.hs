@@ -1,14 +1,14 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-|
-Module: Web.OIDC.Discovery.Issuers
+Module: Web.OIDC.Client.Discovery.Issuers
 Maintainer: krdlab@gmail.com
 Stability: experimental
 -}
-module Web.OIDC.Discovery.Issuers
+module Web.OIDC.Client.Discovery.Issuers
     ( google
     ) where
 
-import Web.OIDC.Types (IssuerLocation)
+import Web.OIDC.Client.Types (IssuerLocation)
 
 google :: IssuerLocation
 google = "https://accounts.google.com"
