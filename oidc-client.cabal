@@ -31,11 +31,15 @@ library
   default-language:    Haskell2010
   exposed-modules:
       Web.OIDC.Client
+    , Web.OIDC.Client.CodeFlow
+    , Web.OIDC.Client.Context
     , Web.OIDC.Client.Discovery
     , Web.OIDC.Client.Discovery.Issuers
+    , Web.OIDC.Client.Discovery.Provider
+    , Web.OIDC.Client.Tokens
+    , Web.OIDC.Client.Types
   other-modules:
       Web.OIDC.Client.Internal
-    , Web.OIDC.Client.Types
   build-depends:
       base              >=4.7 && <5
     , bytestring        >=0.10 && <0.11

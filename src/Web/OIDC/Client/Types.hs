@@ -7,59 +7,17 @@ Stability: experimental
 -}
 module Web.OIDC.Client.Types where
 
-import Control.Applicative ((<$>), (<*>), (<*), (*>), (<|>))
+import Control.Applicative ((<*), (*>), (<|>))
 import Control.Exception (Exception)
-import Control.Monad (mzero)
 import Control.Monad.Catch (throwM, MonadCatch)
-import Data.Aeson (FromJSON, parseJSON, withText, Value(..), (.:))
+import Data.Aeson (FromJSON, parseJSON, withText)
 import Data.Attoparsec.Text (parseOnly, endOfInput, string)
 import Data.ByteString (ByteString)
 import Data.List (isPrefixOf)
-import Data.Maybe (fromJust)
-import Data.Text (unpack, pack)
+import Data.Text (pack)
 import Data.Typeable (Typeable)
-import Jose.Jwk (Jwk)
-import Jose.Jwt (Jwt, JwtClaims(..), JwtError, IntDate)
+import Jose.Jwt (JwtError)
 import Network.HTTP.Client (HttpException)
-import Prelude hiding (exp)
-
-type IssuerLocation = String
-
--- | An OpenID Provider information
-data Provider = Provider { configuration :: Configuration, jwkSet :: [Jwk] }
-
--- | An OpenID Provider Configuration
-data Configuration = Configuration
-    { issuer                            :: IssuerLocation
-    , authorizationEndpoint             :: String
-    , tokenEndpoint                     :: String
-    , userinfoEndpoint                  :: String
-    , revocationEndpoint                :: String
-    , jwksUri                           :: String
-    , responseTypesSupported            :: [String]
-    , subjectTypesSupported             :: [String]
-    , idTokenSigningAlgValuesSupported  :: [String]
-    , scopesSupported                   :: [ScopeValue]
-    , tokenEndpointAuthMethodsSupported :: [String]
-    , claimsSupported                   :: [String]
-    }
-  deriving (Show, Eq)
-
-instance FromJSON Configuration where
-    parseJSON (Object o) = Configuration
-        <$> o .: "issuer"
-        <*> o .: "authorization_endpoint"
-        <*> o .: "token_endpoint"
-        <*> o .: "userinfo_endpoint"
-        <*> o .: "revocation_endpoint"
-        <*> o .: "jwks_uri"
-        <*> o .: "response_types_supported"
-        <*> o .: "subject_types_supported"
-        <*> o .: "id_token_signing_alg_values_supported"
-        <*> o .: "scopes_supported"
-        <*> o .: "token_endpoint_auth_methods_supported"
-        <*> o .: "claims_supported"
-    parseJSON _ = mzero
 
 data ScopeValue =
       OpenId
@@ -111,39 +69,7 @@ type Parameters = [(ByteString, Maybe ByteString)]
 
 type Code = ByteString
 
-data Tokens = Tokens
-    { accessToken :: String
-    , tokenType :: String
-    , idToken :: IdToken
-    , expiresIn :: Maybe Integer
-    , refreshToken :: Maybe String
-    }
-  deriving (Show, Eq)
-
-data IdToken = IdToken
-    { claims :: IdTokenClaims
-    , jwt :: Jwt
-    }
-  deriving (Show, Eq)
-
-data IdTokenClaims = IdTokenClaims
-    { iss :: String
-    , sub :: String
-    , aud :: [String]
-    , exp :: IntDate
-    , iat :: IntDate
-    -- TODO: optional
-    }
-  deriving (Show, Eq)
-
-toIdTokenClaims :: JwtClaims -> IdTokenClaims
-toIdTokenClaims c = IdTokenClaims
-    { iss =     unpack $ fromJust (jwtIss c)
-    , sub =     unpack $ fromJust (jwtSub c)
-    , aud = map unpack $ fromJust (jwtAud c)
-    , exp =              fromJust (jwtExp c)
-    , iat =              fromJust (jwtIat c)
-    }
+type IssuerLocation = String
 
 data OpenIdException =
       DiscoveryException String

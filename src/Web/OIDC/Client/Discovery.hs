@@ -4,12 +4,7 @@ Module: Web.OIDC.Client.Discovery
 Maintainer: krdlab@gmail.com
 Stability: experimental
 -}
-module Web.OIDC.Client.Discovery
-    ( discover
-    , IssuerLocation
-    , Provider
-    , module I
-    ) where
+module Web.OIDC.Client.Discovery where
 
 import Control.Applicative ((<$>))
 import Control.Monad.Catch (throwM, catch)
@@ -18,8 +13,9 @@ import Data.Maybe (fromMaybe)
 import Data.Monoid (mempty)
 import qualified Jose.Jwk as Jwk
 import Network.HTTP.Client (Manager, parseUrl, httpLbs, responseBody)
-import Web.OIDC.Client.Types
-import Web.OIDC.Client.Discovery.Issuers as I
+
+import Web.OIDC.Client.Discovery.Provider (Provider(..), Configuration(..))
+import Web.OIDC.Client.Types (IssuerLocation, rethrow, OpenIdException(..))
 
 -- | This function obtains OpenID Provider configuration and JWK set.
 discover
