@@ -22,12 +22,12 @@ import Data.Aeson (FromJSON, parseJSON, withText)
 import Data.Attoparsec.Text (parseOnly, endOfInput, string)
 import Data.ByteString (ByteString)
 import Data.List (isPrefixOf)
-import Data.Text (pack)
+import Data.Text (Text, pack)
 import Data.Typeable (Typeable)
 import Jose.Jwt (JwtError)
 import Network.HTTP.Client (HttpException)
 
-type IssuerLocation = String
+type IssuerLocation = Text
 
 data ScopeValue =
       OpenId
@@ -80,10 +80,10 @@ type Parameters = [(ByteString, Maybe ByteString)]
 type Code = ByteString
 
 data OpenIdException =
-      DiscoveryException String
+      DiscoveryException Text
     | InternalHttpException HttpException
     | JwtExceptoin JwtError
-    | ValidationException String
+    | ValidationException Text
   deriving (Show, Typeable)
 
 instance Exception OpenIdException

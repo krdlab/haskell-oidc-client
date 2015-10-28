@@ -18,19 +18,19 @@ import qualified Data.ByteString.Char8 as B
 import Data.IORef (atomicModifyIORef')
 import Data.List (nub)
 import Data.Maybe (fromMaybe, fromJust)
-import Data.Text (pack)
 import Data.Text.Encoding (decodeUtf8)
 import Data.Time.Clock.POSIX (getPOSIXTime)
 import Data.Tuple (swap)
 import qualified Jose.Jwk as Jwk
 import Jose.Jwt (Jwt)
 import qualified Jose.Jwt as Jwt
-import Network.HTTP.Client (parseUrl, getUri, setQueryString, applyBasicAuth, urlEncodedBody, Request(..), Manager, httpLbs, responseBody)
+import Network.HTTP.Client (getUri, setQueryString, applyBasicAuth, urlEncodedBody, Request(..), Manager, httpLbs, responseBody)
 import Network.URI (URI)
 
 import Web.OIDC.Client.Settings (OIDC(..), CPRGRef(..))
 import qualified Web.OIDC.Client.Discovery.Provider as P
 import qualified Web.OIDC.Client.Internal as I
+import Web.OIDC.Client.Internal (parseUrl)
 import Web.OIDC.Client.Tokens (Tokens(..), IdToken(..))
 import Web.OIDC.Client.Types (Scope, ScopeValue(..), Code, State, Parameters, OpenIdException(..))
 
@@ -143,7 +143,7 @@ validateIdToken oidc jwt' = do
                     Right (_, c) -> return c
                     Left  cause  -> throwM $ JwtExceptoin cause
 
-    issuer'   = pack . P.issuer . P.configuration . oidcProvider $ oidc
+    issuer'   = P.issuer . P.configuration . oidcProvider $ oidc
     clientId' = decodeUtf8 . oidcClientId $ oidc
 
     getIss c = fromJust (Jwt.jwtIss c)

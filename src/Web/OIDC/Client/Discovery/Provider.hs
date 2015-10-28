@@ -13,6 +13,7 @@ module Web.OIDC.Client.Discovery.Provider
 import Control.Applicative ((<$>), (<*>))
 import Control.Monad (mzero)
 import Data.Aeson (FromJSON, parseJSON, Value(..), (.:))
+import Data.Text (Text)
 import Jose.Jwk (Jwk)
 
 import Web.OIDC.Client.Types (ScopeValue, IssuerLocation)
@@ -23,17 +24,17 @@ data Provider = Provider { configuration :: Configuration, jwkSet :: [Jwk] }
 -- | An OpenID Provider Configuration
 data Configuration = Configuration
     { issuer                            :: IssuerLocation
-    , authorizationEndpoint             :: String
-    , tokenEndpoint                     :: String
-    , userinfoEndpoint                  :: String
-    , revocationEndpoint                :: String
-    , jwksUri                           :: String
-    , responseTypesSupported            :: [String]
-    , subjectTypesSupported             :: [String]
-    , idTokenSigningAlgValuesSupported  :: [String]
+    , authorizationEndpoint             :: Text
+    , tokenEndpoint                     :: Text
+    , userinfoEndpoint                  :: Text
+    , revocationEndpoint                :: Text
+    , jwksUri                           :: Text
+    , responseTypesSupported            :: [Text]
+    , subjectTypesSupported             :: [Text]
+    , idTokenSigningAlgValuesSupported  :: [Text]
     , scopesSupported                   :: [ScopeValue]
-    , tokenEndpointAuthMethodsSupported :: [String]
-    , claimsSupported                   :: [String]
+    , tokenEndpointAuthMethodsSupported :: [Text]
+    , claimsSupported                   :: [Text]
     }
   deriving (Show, Eq)
 

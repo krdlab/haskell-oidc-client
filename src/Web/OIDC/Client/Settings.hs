@@ -19,14 +19,15 @@ module Web.OIDC.Client.Settings
 import Crypto.Random (CPRG)
 import Data.ByteString (ByteString)
 import Data.IORef (IORef)
+import Data.Text (Text)
 
 import Web.OIDC.Client.Discovery.Provider (Provider)
 import qualified Web.OIDC.Client.Discovery.Provider as P
 
 -- | This data type represents information needed in the OpenID flow.
 data OIDC = OIDC
-    { oidcAuthorizationSeverUrl :: String
-    , oidcTokenEndpoint         :: String
+    { oidcAuthorizationSeverUrl :: Text
+    , oidcTokenEndpoint         :: Text
     , oidcClientId              :: ByteString
     , oidcClientSecret          :: ByteString
     , oidcRedirectUri           :: ByteString

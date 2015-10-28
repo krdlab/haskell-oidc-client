@@ -19,14 +19,15 @@ module Web.OIDC.Client.Discovery
 import Control.Applicative ((<$>))
 import Control.Monad.Catch (throwM, catch)
 import Data.Aeson (decode)
+import Data.Text (append)
 import Data.Maybe (fromMaybe)
 import Data.Monoid (mempty)
 import qualified Jose.Jwk as Jwk
-import Network.HTTP.Client (Manager, parseUrl, httpLbs, responseBody)
+import Network.HTTP.Client (Manager, httpLbs, responseBody)
 
 import Web.OIDC.Client.Discovery.Issuers (google)
 import Web.OIDC.Client.Discovery.Provider (Provider(..), Configuration(..))
-import Web.OIDC.Client.Internal (rethrow)
+import Web.OIDC.Client.Internal (rethrow, parseUrl)
 import Web.OIDC.Client.Types (IssuerLocation, OpenIdException(..))
 
 -- | This function obtains OpenID Provider configuration and JWK set.
@@ -41,7 +42,7 @@ discover location manager = do
         Nothing -> throwM $ DiscoveryException "failed to decode configuration"
   where
     getConfiguration = do
-        req <- parseUrl (location ++ "/.well-known/openid-configuration")
+        req <- parseUrl (location `append` "/.well-known/openid-configuration")
         res <- httpLbs req manager
         return $ decode $ responseBody res
     getJwkSetJson url = do
