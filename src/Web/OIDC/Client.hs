@@ -7,37 +7,26 @@ Stability: experimental
 -}
 module Web.OIDC.Client
     (
-    -- * Obtaining OpenID Provider Configuration Information
-      discover
+    -- * OpenID Connect Discovery
+      module Web.OIDC.Client.Discovery
 
-    -- * Obtaining ID Token and Access Token
-    , OIDC
-    , newOIDC
-    , newOIDC'
-    , setProvider
-    , setCredentials
+    -- * Settings and Tokens
+    , OIDC, newOIDC, newOIDC', setProvider, setCredentials
+    , module Web.OIDC.Client.Tokens
 
     -- * Authorization Code Flow
     , module Web.OIDC.Client.CodeFlow
 
-    -- * Types
-    , Provider
-    , Scope, ScopeValue(..)
-    , Code, State
-    , Parameters
-    , Tokens(..), IdToken(..), IdTokenClaims(..)
-
-    -- * Exception
-    , OpenIdException(..)
+    -- * Types and Exceptions
+    , module Web.OIDC.Client.Types
 
     -- * Re-exports
     , module Jose.Jwt
     ) where
 
 import Web.OIDC.Client.CodeFlow
-import Web.OIDC.Client.Context
+import Web.OIDC.Client.Settings (OIDC, newOIDC, newOIDC', setProvider, setCredentials)
 import Web.OIDC.Client.Discovery
-import Web.OIDC.Client.Discovery.Provider
 import Web.OIDC.Client.Tokens
 import Web.OIDC.Client.Types
 

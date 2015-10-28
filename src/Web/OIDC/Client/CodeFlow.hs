@@ -28,24 +28,23 @@ import qualified Jose.Jwt as Jwt
 import Network.HTTP.Client (parseUrl, getUri, setQueryString, applyBasicAuth, urlEncodedBody, Request(..), Manager, httpLbs, responseBody)
 import Network.URI (URI)
 
-import Web.OIDC.Client.Context
+import Web.OIDC.Client.Settings (OIDC(..), CPRGRef(..))
 import qualified Web.OIDC.Client.Discovery.Provider as P
 import qualified Web.OIDC.Client.Internal as I
-import Web.OIDC.Client.Tokens (Tokens(..), IdToken(..), toIdTokenClaims)
-import qualified Web.OIDC.Client.Types as OT
+import Web.OIDC.Client.Tokens (Tokens(..), IdToken(..))
 import Web.OIDC.Client.Types (Scope, ScopeValue(..), Code, State, Parameters, OpenIdException(..))
 
 getAuthenticationRequestUrl :: (MonadThrow m, MonadCatch m) => OIDC -> Scope -> Maybe State -> Parameters -> m URI
 getAuthenticationRequestUrl oidc scope state params = do
-    req <- parseUrl endpoint `catch` OT.rethrow
+    req <- parseUrl endpoint `catch` I.rethrow
     return $ getUri $ setQueryString query req
   where
-    endpoint  = authorizationSeverUrl oidc
+    endpoint  = oidcAuthorizationSeverUrl oidc
     query     = requireds ++ state' ++ params
     requireds =
         [ ("response_type", Just "code")
-        , ("client_id",     Just $ clientId oidc)
-        , ("redirect_uri",  Just $ redirectUri oidc)
+        , ("client_id",     Just $ oidcClientId oidc)
+        , ("redirect_uri",  Just $ oidcRedirectUri oidc)
         , ("scope",         Just $ B.pack . unwords . nub . map show $ OpenId:scope)
         ]
     state' =
@@ -61,7 +60,7 @@ getAuthenticationRequestUrl oidc scope state params = do
 -- Returned value is a valid tokens.
 requestTokens :: OIDC -> Code -> Manager -> IO Tokens
 requestTokens oidc code manager = do
-    json <- getTokensJson `catch` OT.rethrow
+    json <- getTokensJson `catch` I.rethrow
     case decode json of
         Just ts -> validate oidc ts
         Nothing -> error "failed to decode tokens json" -- TODO
@@ -71,10 +70,10 @@ requestTokens oidc code manager = do
         let req' = applyBasicAuth cid sec $ urlEncodedBody body $ req { method = "POST" }
         res <- httpLbs req' manager
         return $ responseBody res
-    endpoint = tokenEndpoint oidc
-    cid      = clientId oidc
-    sec      = clientSecret oidc
-    redirect = redirectUri oidc
+    endpoint = oidcTokenEndpoint oidc
+    cid      = oidcClientId oidc
+    sec      = oidcClientSecret oidc
+    redirect = oidcRedirectUri oidc
     body     =
         [ ("grant_type",   "authorization_code")
         , ("code",         code)
@@ -88,7 +87,7 @@ validate oidc tres = do
     let tokens = Tokens {
           accessToken  = I.accessToken tres
         , tokenType    = I.tokenType tres
-        , idToken      = IdToken { claims = toIdTokenClaims claims', jwt = jwt' }
+        , idToken      = IdToken { claims = I.toIdTokenClaims claims', jwt = jwt' }
         , expiresIn    = I.expiresIn tres
         , refreshToken = I.refreshToken tres
         }
@@ -96,7 +95,7 @@ validate oidc tres = do
 
 validateIdToken :: OIDC -> Jwt -> IO Jwt.JwtClaims
 validateIdToken oidc jwt' = do
-    case cprgRef oidc of
+    case oidcCPRGRef oidc of
         Ref crpg -> do
             decoded <- case Jwt.decodeClaims (Jwt.unJwt jwt') of
                 Left  cause     -> throwM $ JwtExceptoin cause
@@ -105,13 +104,13 @@ validateIdToken oidc jwt' = do
                         (Jwt.JwsH jws) -> do
                             let kid = Jwt.jwsKid jws
                                 alg = Jwt.jwsAlg jws
-                                jwk = getJwk kid (P.jwkSet . provider $ oidc)
+                                jwk = getJwk kid (P.jwkSet . oidcProvider $ oidc)
                             atomicModifyIORef' crpg $ \g -> swap (Jwt.decode g [jwk] (Just $ Jwt.JwsEncoding alg) (Jwt.unJwt jwt'))
                         (Jwt.JweH jwe) -> do
                             let kid = Jwt.jweKid jwe
                                 alg = Jwt.jweAlg jwe
                                 enc = Jwt.jweEnc jwe
-                                jwk = getJwk kid (P.jwkSet . provider $ oidc)
+                                jwk = getJwk kid (P.jwkSet . oidcProvider $ oidc)
                             atomicModifyIORef' crpg $ \g -> swap (Jwt.decode g [jwk] (Just $ Jwt.JweEncoding alg enc) (Jwt.unJwt jwt'))
                         _ -> error "not supported"
             case decoded of
@@ -144,8 +143,8 @@ validateIdToken oidc jwt' = do
                     Right (_, c) -> return c
                     Left  cause  -> throwM $ JwtExceptoin cause
 
-    issuer'   = pack . P.issuer . P.configuration . provider $ oidc
-    clientId' = decodeUtf8 . clientId $ oidc
+    issuer'   = pack . P.issuer . P.configuration . oidcProvider $ oidc
+    clientId' = decodeUtf8 . oidcClientId $ oidc
 
     getIss c = fromJust (Jwt.jwtIss c)
     getAud c = fromJust (Jwt.jwtAud c)
@@ -153,4 +152,3 @@ validateIdToken oidc jwt' = do
                    Just e  -> return e
                    Nothing -> throwM $ ValidationException "exp claim was not found"
     getCurrentTime = Jwt.IntDate <$> getPOSIXTime
-

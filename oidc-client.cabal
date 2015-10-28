@@ -32,10 +32,10 @@ library
   exposed-modules:
       Web.OIDC.Client
     , Web.OIDC.Client.CodeFlow
-    , Web.OIDC.Client.Context
     , Web.OIDC.Client.Discovery
     , Web.OIDC.Client.Discovery.Issuers
     , Web.OIDC.Client.Discovery.Provider
+    , Web.OIDC.Client.Settings
     , Web.OIDC.Client.Tokens
     , Web.OIDC.Client.Types
   other-modules:

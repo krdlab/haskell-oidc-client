@@ -4,7 +4,11 @@
     Maintainer: krdlab@gmail.com
     Stability: experimental
 -}
-module Web.OIDC.Client.Discovery.Provider where
+module Web.OIDC.Client.Discovery.Provider
+    (
+      Provider(..)
+    , Configuration(..)
+    ) where
 
 import Control.Applicative ((<$>), (<*>))
 import Control.Monad (mzero)

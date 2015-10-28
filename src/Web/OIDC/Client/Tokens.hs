@@ -1,14 +1,17 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-|
-Module: Web.OIDC.Client.Tokens
-Maintainer: krdlab@gmail.com
-Stability: experimental
+    Module: Web.OIDC.Client.Tokens
+    Maintainer: krdlab@gmail.com
+    Stability: experimental
 -}
-module Web.OIDC.Client.Tokens where
+module Web.OIDC.Client.Tokens
+    (
+      Tokens(..)
+    , IdToken(..)
+    , IdTokenClaims(..)
+    ) where
 
-import Data.Maybe (fromJust)
-import Data.Text (unpack)
-import Jose.Jwt (Jwt, JwtClaims(..), IntDate)
+import Jose.Jwt (Jwt, IntDate)
 import Prelude hiding (exp)
 
 data Tokens = Tokens
@@ -35,14 +38,3 @@ data IdTokenClaims = IdTokenClaims
     -- TODO: optional
     }
   deriving (Show, Eq)
-
-toIdTokenClaims :: JwtClaims -> IdTokenClaims
-toIdTokenClaims c = IdTokenClaims
-    { iss =     unpack $ fromJust (jwtIss c)
-    , sub =     unpack $ fromJust (jwtSub c)
-    , aud = map unpack $ fromJust (jwtAud c)
-    , exp =              fromJust (jwtExp c)
-    , iat =              fromJust (jwtIat c)
-    }
-
-

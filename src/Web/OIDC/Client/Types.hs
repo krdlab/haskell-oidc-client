@@ -1,15 +1,23 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DeriveDataTypeable #-}
 {-|
-Module: Web.OIDC.Client.Types
-Maintainer: krdlab@gmail.com
-Stability: experimental
+    Module: Web.OIDC.Client.Types
+    Maintainer: krdlab@gmail.com
+    Stability: experimental
 -}
-module Web.OIDC.Client.Types where
+module Web.OIDC.Client.Types
+    (
+      ScopeValue(..)
+    , Scope
+    , State
+    , Parameters
+    , Code
+    , IssuerLocation
+    , OpenIdException(..)
+    ) where
 
 import Control.Applicative ((<*), (*>), (<|>))
 import Control.Exception (Exception)
-import Control.Monad.Catch (throwM, MonadCatch)
 import Data.Aeson (FromJSON, parseJSON, withText)
 import Data.Attoparsec.Text (parseOnly, endOfInput, string)
 import Data.ByteString (ByteString)
@@ -18,6 +26,8 @@ import Data.Text (pack)
 import Data.Typeable (Typeable)
 import Jose.Jwt (JwtError)
 import Network.HTTP.Client (HttpException)
+
+type IssuerLocation = String
 
 data ScopeValue =
       OpenId
@@ -69,8 +79,6 @@ type Parameters = [(ByteString, Maybe ByteString)]
 
 type Code = ByteString
 
-type IssuerLocation = String
-
 data OpenIdException =
       DiscoveryException String
     | InternalHttpException HttpException
@@ -79,6 +87,3 @@ data OpenIdException =
   deriving (Show, Typeable)
 
 instance Exception OpenIdException
-
-rethrow :: (MonadCatch m) => HttpException -> m a
-rethrow = throwM . InternalHttpException
