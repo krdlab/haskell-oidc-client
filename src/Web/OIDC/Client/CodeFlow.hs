@@ -8,16 +8,23 @@ module Web.OIDC.Client.CodeFlow
     (
       getAuthenticationRequestUrl
     , requestTokens
+
+    -- * For testing
+    , validateClaims
+    , getCurrentIntDate
     ) where
 
 import Control.Applicative ((<$>))
 import Control.Monad (unless)
 import Control.Monad.Catch (MonadThrow, throwM, MonadCatch, catch)
+import Crypto.Random (CPRG)
 import Data.Aeson (decode)
+import Data.ByteString (ByteString)
 import qualified Data.ByteString.Char8 as B
-import Data.IORef (atomicModifyIORef')
+import Data.IORef (IORef, atomicModifyIORef')
 import Data.List (nub)
-import Data.Maybe (fromMaybe, fromJust)
+import Data.Maybe (fromMaybe)
+import Data.Text (Text)
 import Data.Text.Encoding (decodeUtf8)
 import Data.Time.Clock.POSIX (getPOSIXTime)
 import Data.Tuple (swap)
@@ -83,55 +90,56 @@ requestTokens oidc code manager = do
 validate :: OIDC -> I.TokensResponse -> IO Tokens
 validate oidc tres = do
     let jwt' = I.idToken tres
-    claims' <- validateIdToken oidc jwt'
-    let tokens = Tokens {
+    validateIdToken oidc jwt'
+    claims' <- getClaims jwt'
+    now <- getCurrentIntDate
+    validateClaims
+        (P.issuer . P.configuration . oidcProvider $ oidc)
+        (decodeUtf8 . oidcClientId $ oidc)
+        now
+        claims'
+    return Tokens {
           accessToken  = I.accessToken tres
         , tokenType    = I.tokenType tres
         , idToken      = IdToken { claims = I.toIdTokenClaims claims', jwt = jwt' }
         , expiresIn    = I.expiresIn tres
         , refreshToken = I.refreshToken tres
         }
-    return tokens
 
-validateIdToken :: OIDC -> Jwt -> IO Jwt.JwtClaims
-validateIdToken oidc jwt' = do
+validateIdToken :: OIDC -> Jwt -> IO ()
+validateIdToken oidc jwt' =
     case oidcCPRGRef oidc of
-        Ref crpg -> do
-            decoded <- case Jwt.decodeClaims (Jwt.unJwt jwt') of
-                Left  cause     -> throwM $ JwtExceptoin cause
-                Right (jwth, _) ->
-                    case jwth of
-                        (Jwt.JwsH jws) -> do
-                            let kid = Jwt.jwsKid jws
-                                alg = Jwt.jwsAlg jws
-                                jwk = getJwk kid (P.jwkSet . oidcProvider $ oidc)
-                            atomicModifyIORef' crpg $ \g -> swap (Jwt.decode g [jwk] (Just $ Jwt.JwsEncoding alg) (Jwt.unJwt jwt'))
-                        (Jwt.JweH jwe) -> do
-                            let kid = Jwt.jweKid jwe
-                                alg = Jwt.jweAlg jwe
-                                enc = Jwt.jweEnc jwe
-                                jwk = getJwk kid (P.jwkSet . oidcProvider $ oidc)
-                            atomicModifyIORef' crpg $ \g -> swap (Jwt.decode g [jwk] (Just $ Jwt.JweEncoding alg enc) (Jwt.unJwt jwt'))
-                        _ -> error "not supported"
+        Ref cprg -> do
+            let token = Jwt.unJwt jwt'
+            decoded <- case Jwt.decodeClaims token of
+                Left  err       -> throwM $ JwtExceptoin err
+                Right (jwth, _) -> decodeToken oidc cprg token jwth
             case decoded of
                 Left err -> throwM $ JwtExceptoin err
                 Right _  -> return ()
         NoRef -> error "not implemented" -- TODO: request tokeninfo
 
-    claims' <- getClaims
-
-    unless (getIss claims' == issuer')
-        $ throwM $ ValidationException "issuer"
-
-    unless (clientId' `elem` getAud claims')
-        $ throwM $ ValidationException "audience"
-
-    expire <- getExp claims'
-    now    <- getCurrentTime
-    unless (now < expire)
-        $ throwM $ ValidationException "expire"
-
-    return claims'
+decodeToken
+    :: CPRG g
+    => OIDC
+    -> IORef g
+    -> ByteString       -- ^ ID Token (JWT format)
+    -> Jwt.JwtHeader
+    -> IO (Either Jwt.JwtError Jwt.JwtContent)
+decodeToken oidc cprg token jwth =
+    case jwth of
+        (Jwt.JwsH jws) -> do
+            let kid = Jwt.jwsKid jws
+                alg = Jwt.jwsAlg jws
+                jwk = getJwk kid (P.jwkSet . oidcProvider $ oidc)
+            atomicModifyIORef' cprg $ \g -> swap (Jwt.decode g [jwk] (Just $ Jwt.JwsEncoding alg) token)
+        (Jwt.JweH jwe) -> do
+            let kid = Jwt.jweKid jwe
+                alg = Jwt.jweAlg jwe
+                enc = Jwt.jweEnc jwe
+                jwk = getJwk kid (P.jwkSet . oidcProvider $ oidc)
+            atomicModifyIORef' cprg $ \g -> swap (Jwt.decode g [jwk] (Just $ Jwt.JweEncoding alg enc) token)
+        _ -> error "not supported" -- TODO: exception
   where
     getJwk kid jwks = head $ case kid of
                                  Just keyId -> filter (eq keyId) jwks
@@ -139,16 +147,31 @@ validateIdToken oidc jwt' = do
       where
         eq e jwk = fromMaybe False ((==) e <$> Jwk.jwkId jwk)
 
-    getClaims = case Jwt.decodeClaims (Jwt.unJwt jwt') of
-                    Right (_, c) -> return c
-                    Left  cause  -> throwM $ JwtExceptoin cause
+getClaims :: MonadThrow m => Jwt -> m Jwt.JwtClaims
+getClaims jwt' = case Jwt.decodeClaims (Jwt.unJwt jwt') of
+                Right (_, c) -> return c
+                Left  cause  -> throwM $ JwtExceptoin cause
 
-    issuer'   = P.issuer . P.configuration . oidcProvider $ oidc
-    clientId' = decodeUtf8 . oidcClientId $ oidc
+validateClaims :: Text -> Text -> Jwt.IntDate -> Jwt.JwtClaims -> IO ()
+validateClaims issuer' clientId' now claims' = do
+    iss' <- getIss claims'
+    unless (iss' == issuer')
+        $ throwM $ ValidationException "issuer"
 
-    getIss c = fromJust (Jwt.jwtIss c)
-    getAud c = fromJust (Jwt.jwtAud c)
-    getExp c = case Jwt.jwtExp c of
-                   Just e  -> return e
-                   Nothing -> throwM $ ValidationException "exp claim was not found"
-    getCurrentTime = Jwt.IntDate <$> getPOSIXTime
+    aud' <- getAud claims'
+    unless (clientId' `elem` aud')
+        $ throwM $ ValidationException "audience"
+
+    exp' <- getExp claims'
+    unless (now < exp')
+        $ throwM $ ValidationException "expire"
+  where
+    getIss c = get Jwt.jwtIss c "'iss' claim was not found"
+    getAud c = get Jwt.jwtAud c "'aud' claim was not found"
+    getExp c = get Jwt.jwtExp c "'exp' claim was not found"
+    get f v msg = case f v of
+        Just v' -> return v'
+        Nothing -> throwM $ ValidationException msg
+
+getCurrentIntDate :: IO Jwt.IntDate
+getCurrentIntDate = Jwt.IntDate <$> getPOSIXTime

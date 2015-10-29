@@ -1,9 +1,5 @@
-{-# LANGUAGE OverloadedStrings #-}
-
-import Test.Hspec
+import Test.Hspec (hspec)
+import qualified Spec.Client as Client
 
 main :: IO ()
-main = hspec $
-    describe "dummy test" $
-        it "dummy" $
-            True `shouldBe` True
+main = hspec Client.tests

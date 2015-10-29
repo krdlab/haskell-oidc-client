@@ -68,6 +68,11 @@ test-suite oidc-client-spec
       base
     , hspec
     , oidc-client
+    , bytestring
+    , text
+    , http-types
+    , http-client
+    , http-client-tls
 
 executable scotty-example
   main-is:          Main.hs
