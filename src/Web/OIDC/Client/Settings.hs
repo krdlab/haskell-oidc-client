@@ -52,7 +52,7 @@ def = OIDC
 
 -- | Create OIDC.
 --
--- First argument is used in a token decoding on ID Token Validation.
+-- The first argument is used in a token decoding on ID Token Validation.
 newOIDC :: CPRG g => IORef g -> OIDC
 newOIDC ref = def { oidcCPRGRef = Ref ref }
 
@@ -60,7 +60,7 @@ newOIDC' :: OIDC
 newOIDC' = def
 
 setProvider
-    :: Provider     -- ^ OP's information (obtain by 'discover')
+    :: Provider     -- ^ OP's information (obtained by 'Web.OIDC.Client.Discovery.discover')
     -> OIDC
     -> OIDC
 setProvider p oidc =
@@ -72,7 +72,7 @@ setProvider p oidc =
 setCredentials
     :: ByteString   -- ^ client ID
     -> ByteString   -- ^ client secret
-    -> ByteString   -- ^ redirect URI
+    -> ByteString   -- ^ redirect URI (the HTTP endpont on your server that will receive a response from OP)
     -> OIDC
     -> OIDC
 setCredentials cid secret redirect oidc =

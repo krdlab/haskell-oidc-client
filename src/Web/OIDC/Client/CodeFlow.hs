@@ -41,7 +41,14 @@ import Web.OIDC.Client.Internal (parseUrl)
 import Web.OIDC.Client.Tokens (Tokens(..), IdToken(..))
 import Web.OIDC.Client.Types (Scope, ScopeValue(..), Code, State, Parameters, OpenIdException(..))
 
-getAuthenticationRequestUrl :: (MonadThrow m, MonadCatch m) => OIDC -> Scope -> Maybe State -> Parameters -> m URI
+-- | Make URL for Authorization Request.
+getAuthenticationRequestUrl
+    :: (MonadThrow m, MonadCatch m)
+    => OIDC
+    -> Scope            -- ^ used to specify what are privileges requested for tokens. (use `ScopeValue`)
+    -> Maybe State      -- ^ used for CSRF mitigation. (recommended parameter)
+    -> Parameters       -- ^ Optional parameters
+    -> m URI
 getAuthenticationRequestUrl oidc scope state params = do
     req <- parseUrl endpoint `catch` I.rethrow
     return $ getUri $ setQueryString query req
@@ -61,10 +68,12 @@ getAuthenticationRequestUrl oidc scope state params = do
 
 -- TODO: error response
 
--- | Request and obtain valid tokens.
+-- | Request and validate tokens.
 --
 -- This function requests ID Token and Access Token to a OP's token endpoint, and validates the received ID Token.
--- Returned value is a valid tokens.
+-- Returned `Tokens` value is a valid.
+--
+-- If a HTTP error has occurred or a tokens validation has failed, this function throws `OpenIdException`.
 requestTokens :: OIDC -> Code -> Manager -> IO Tokens
 requestTokens oidc code manager = do
     json <- getTokensJson `catch` I.rethrow
