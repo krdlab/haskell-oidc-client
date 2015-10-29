@@ -27,7 +27,7 @@ import Text.Blaze.Html5 ((!))
 import qualified Text.Blaze.Html5 as H
 import qualified Text.Blaze.Html5.Attributes as A
 import qualified Web.OIDC.Client as O
-import qualified Web.OIDC.Discovery as O
+import qualified Web.OIDC.Client.Discovery.Issuers as O
 import Web.Scotty (scotty, middleware, get, param, post, redirect, html, status, text)
 import Web.Scotty.Cookie (setSimpleCookie, getCookie)
 
