@@ -17,24 +17,18 @@ module Web.OIDC.Client.CodeFlow
 import Control.Applicative ((<$>))
 import Control.Monad (unless)
 import Control.Monad.Catch (MonadThrow, throwM, MonadCatch, catch)
-import Crypto.Random (CPRG)
 import Data.Aeson (decode)
-import Data.ByteString (ByteString)
 import qualified Data.ByteString.Char8 as B
-import Data.IORef (IORef, atomicModifyIORef')
 import Data.List (nub)
-import Data.Maybe (fromMaybe)
 import Data.Text (Text)
 import Data.Text.Encoding (decodeUtf8)
 import Data.Time.Clock.POSIX (getPOSIXTime)
-import Data.Tuple (swap)
-import qualified Jose.Jwk as Jwk
 import Jose.Jwt (Jwt)
 import qualified Jose.Jwt as Jwt
 import Network.HTTP.Client (getUri, setQueryString, applyBasicAuth, urlEncodedBody, Request(..), Manager, httpLbs, responseBody)
 import Network.URI (URI)
 
-import Web.OIDC.Client.Settings (OIDC(..), CPRGRef(..))
+import Web.OIDC.Client.Settings (OIDC(..))
 import qualified Web.OIDC.Client.Discovery.Provider as P
 import qualified Web.OIDC.Client.Internal as I
 import Web.OIDC.Client.Internal (parseUrl)
@@ -116,45 +110,13 @@ validate oidc tres = do
         }
 
 validateIdToken :: OIDC -> Jwt -> IO ()
-validateIdToken oidc jwt' =
-    case oidcCPRGRef oidc of
-        Ref cprg -> do
-            let token = Jwt.unJwt jwt'
-            decoded <- case Jwt.decodeClaims token of
-                Left  err       -> throwM $ JwtExceptoin err
-                Right (jwth, _) -> decodeToken oidc cprg token jwth
-            case decoded of
-                Left err -> throwM $ JwtExceptoin err
-                Right _  -> return ()
-        NoRef -> error "not implemented" -- TODO: request tokeninfo
-
-decodeToken
-    :: CPRG g
-    => OIDC
-    -> IORef g
-    -> ByteString       -- ^ ID Token (JWT format)
-    -> Jwt.JwtHeader
-    -> IO (Either Jwt.JwtError Jwt.JwtContent)
-decodeToken oidc cprg token jwth =
-    case jwth of
-        (Jwt.JwsH jws) -> do
-            let kid = Jwt.jwsKid jws
-                alg = Jwt.jwsAlg jws
-                jwk = getJwk kid (P.jwkSet . oidcProvider $ oidc)
-            atomicModifyIORef' cprg $ \g -> swap (Jwt.decode g [jwk] (Just $ Jwt.JwsEncoding alg) token)
-        (Jwt.JweH jwe) -> do
-            let kid = Jwt.jweKid jwe
-                alg = Jwt.jweAlg jwe
-                enc = Jwt.jweEnc jwe
-                jwk = getJwk kid (P.jwkSet . oidcProvider $ oidc)
-            atomicModifyIORef' cprg $ \g -> swap (Jwt.decode g [jwk] (Just $ Jwt.JweEncoding alg enc) token)
-        _ -> error "not supported" -- TODO: exception
-  where
-    getJwk kid jwks = head $ case kid of
-                                 Just keyId -> filter (eq keyId) jwks
-                                 Nothing    -> jwks
-      where
-        eq e jwk = fromMaybe False ((==) e <$> Jwk.jwkId jwk)
+validateIdToken oidc jwt' = do
+    let jwks = P.jwkSet . oidcProvider $ oidc
+        token = Jwt.unJwt jwt'
+    decoded <- Jwt.decode jwks Nothing token
+    case decoded of
+        Right _  -> return ()
+        Left err -> throwM $ JwtExceptoin err
 
 getClaims :: MonadThrow m => Jwt -> m Jwt.JwtClaims
 getClaims jwt' = case Jwt.decodeClaims (Jwt.unJwt jwt') of

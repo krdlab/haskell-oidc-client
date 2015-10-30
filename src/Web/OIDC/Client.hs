@@ -1,9 +1,7 @@
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE GADTs #-}
 {-|
-Module: Web.OIDC.Client
-Maintainer: krdlab@gmail.com
-Stability: experimental
+    Module: Web.OIDC.Client
+    Maintainer: krdlab@gmail.com
+    Stability: experimental
 -}
 module Web.OIDC.Client
     (
@@ -11,7 +9,7 @@ module Web.OIDC.Client
       module Web.OIDC.Client.Discovery
 
     -- * Settings and Tokens
-    , OIDC, newOIDC, newOIDC', setProvider, setCredentials
+    , OIDC, newOIDC, setProvider, setCredentials
     , module Web.OIDC.Client.Tokens
 
     -- * Authorization Code Flow
@@ -25,9 +23,11 @@ module Web.OIDC.Client
     ) where
 
 import Web.OIDC.Client.CodeFlow
-import Web.OIDC.Client.Settings (OIDC, newOIDC, newOIDC', setProvider, setCredentials)
+import Web.OIDC.Client.Settings (OIDC, newOIDC, setProvider, setCredentials)
 import Web.OIDC.Client.Discovery
 import Web.OIDC.Client.Tokens
 import Web.OIDC.Client.Types
 
 import Jose.Jwt
+
+{-# ANN module "HLint: ignore Use import/export shortcut" #-}
