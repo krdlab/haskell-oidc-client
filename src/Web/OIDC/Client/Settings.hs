@@ -1,5 +1,4 @@
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE GADTs #-}
 {-|
     Module: Web.OIDC.Client.Settings
     Maintainer: krdlab@gmail.com
@@ -8,17 +7,13 @@
 module Web.OIDC.Client.Settings
     (
       OIDC(..)
-    , CPRGRef(..)
     , def
     , newOIDC
-    , newOIDC'
     , setProvider
     , setCredentials
     ) where
 
-import Crypto.Random (CPRG)
 import Data.ByteString (ByteString)
-import Data.IORef (IORef)
 import Data.Text (Text)
 
 import Web.OIDC.Client.Discovery.Provider (Provider)
@@ -32,12 +27,7 @@ data OIDC = OIDC
     , oidcClientSecret          :: ByteString
     , oidcRedirectUri           :: ByteString
     , oidcProvider              :: Provider
-    , oidcCPRGRef               :: CPRGRef
     }
-
-data CPRGRef where
-    Ref   :: (CPRG g) => IORef g -> CPRGRef
-    NoRef :: CPRGRef
 
 def :: OIDC
 def = OIDC
@@ -47,17 +37,10 @@ def = OIDC
     , oidcClientSecret          = error "You must specify clientSecret"
     , oidcRedirectUri           = error "You must specify redirectUri"
     , oidcProvider              = error "You must specify provider"
-    , oidcCPRGRef               = NoRef
     }
 
--- | Create OIDC.
---
--- The first argument is used in a token decoding on ID Token Validation.
-newOIDC :: CPRG g => IORef g -> OIDC
-newOIDC ref = def { oidcCPRGRef = Ref ref }
-
-newOIDC' :: OIDC
-newOIDC' = def
+newOIDC :: OIDC
+newOIDC = def
 
 setProvider
     :: Provider     -- ^ OP's information (obtained by 'Web.OIDC.Client.Discovery.discover')
