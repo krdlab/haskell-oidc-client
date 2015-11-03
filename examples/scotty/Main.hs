@@ -44,7 +44,7 @@ main = do
     ssm  <- newIORef M.empty
     mgr  <- newManager tlsManagerSettings
     prov <- O.discover O.google mgr
-    let oidc = O.setCredentials clientId clientSecret redirectUri $ O.setProvider prov O.newOIDC
+    let oidc = O.setCredentials clientId clientSecret redirectUri $ O.newOIDC prov
 
     run oidc cprg ssm mgr
 

@@ -9,7 +9,6 @@ module Web.OIDC.Client.Settings
       OIDC(..)
     , def
     , newOIDC
-    , setProvider
     , setCredentials
     ) where
 
@@ -39,18 +38,14 @@ def = OIDC
     , oidcProvider              = error "You must specify provider"
     }
 
-newOIDC :: OIDC
-newOIDC = def
-
-setProvider
+newOIDC
     :: Provider     -- ^ OP's information (obtained by 'Web.OIDC.Client.Discovery.discover')
     -> OIDC
-    -> OIDC
-setProvider p oidc =
-    oidc { oidcAuthorizationSeverUrl = P.authorizationEndpoint . P.configuration $ p
-         , oidcTokenEndpoint         = P.tokenEndpoint . P.configuration $ p
-         , oidcProvider              = p
-         }
+newOIDC p =
+    def { oidcAuthorizationSeverUrl = P.authorizationEndpoint . P.configuration $ p
+        , oidcTokenEndpoint         = P.tokenEndpoint . P.configuration $ p
+        , oidcProvider              = p
+        }
 
 setCredentials
     :: ByteString   -- ^ client ID

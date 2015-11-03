@@ -9,7 +9,7 @@ module Web.OIDC.Client
       module Web.OIDC.Client.Discovery
 
     -- * Settings and Tokens
-    , OIDC, newOIDC, setProvider, setCredentials
+    , OIDC, newOIDC, setCredentials
     , module Web.OIDC.Client.Tokens
 
     -- * Authorization Code Flow
@@ -23,7 +23,7 @@ module Web.OIDC.Client
     ) where
 
 import Web.OIDC.Client.CodeFlow
-import Web.OIDC.Client.Settings (OIDC, newOIDC, setProvider, setCredentials)
+import Web.OIDC.Client.Settings (OIDC, newOIDC, setCredentials)
 import Web.OIDC.Client.Discovery
 import Web.OIDC.Client.Tokens
 import Web.OIDC.Client.Types

@@ -23,7 +23,7 @@ tests = do
         it "should return a url that has required parameters" $ do
             manager  <- newManager tlsManagerSettings
             provider <- discover google manager
-            let oidc = setCredentials clientId clientSecret redirectUri $ setProvider provider newOIDC
+            let oidc = setCredentials clientId clientSecret redirectUri $ newOIDC provider
             url <- getAuthenticationRequestUrl oidc [] Nothing []
             show url `shouldContain` "response_type=code"
             show url `shouldContain` "scope=openid"
@@ -34,7 +34,7 @@ tests = do
         it "should return a url that has other parameters" $ do
             manager  <- newManager tlsManagerSettings
             provider <- discover google manager
-            let oidc = setCredentials clientId clientSecret redirectUri $ setProvider provider newOIDC
+            let oidc = setCredentials clientId clientSecret redirectUri $ newOIDC provider
                 state = "dummy state"
             url <- getAuthenticationRequestUrl oidc [Email] (Just state) [("nonce", Just nonce)]
             show url `shouldContain` (toES "scope" ++ "=" ++ toES "openid email")
