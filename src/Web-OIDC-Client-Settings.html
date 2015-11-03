@@ -8,86 +8,64 @@
 </head>
 <body>
 <pre><a name="line-1"></a><span class='hs-comment'>{-# LANGUAGE OverloadedStrings #-}</span>
-<a name="line-2"></a><span class='hs-comment'>{-# LANGUAGE GADTs #-}</span>
-<a name="line-3"></a><span class='hs-comment'>{-|
-<a name="line-4"></a>    Module: Web.OIDC.Client.Settings
-<a name="line-5"></a>    Maintainer: krdlab@gmail.com
-<a name="line-6"></a>    Stability: experimental
-<a name="line-7"></a>-}</span>
-<a name="line-8"></a><span class='hs-keyword'>module</span> <span class='hs-conid'>Web</span><span class='hs-varop'>.</span><span class='hs-conid'>OIDC</span><span class='hs-varop'>.</span><span class='hs-conid'>Client</span><span class='hs-varop'>.</span><span class='hs-conid'>Settings</span>
-<a name="line-9"></a>    <span class='hs-layout'>(</span>
-<a name="line-10"></a>      <span class='hs-conid'>OIDC</span><span class='hs-layout'>(</span><span class='hs-keyglyph'>..</span><span class='hs-layout'>)</span>
-<a name="line-11"></a>    <span class='hs-layout'>,</span> <span class='hs-conid'>CPRGRef</span><span class='hs-layout'>(</span><span class='hs-keyglyph'>..</span><span class='hs-layout'>)</span>
-<a name="line-12"></a>    <span class='hs-layout'>,</span> <span class='hs-varid'>def</span>
-<a name="line-13"></a>    <span class='hs-layout'>,</span> <span class='hs-varid'>newOIDC</span>
-<a name="line-14"></a>    <span class='hs-layout'>,</span> <span class='hs-varid'>newOIDC'</span>
-<a name="line-15"></a>    <span class='hs-layout'>,</span> <span class='hs-varid'>setProvider</span>
-<a name="line-16"></a>    <span class='hs-layout'>,</span> <span class='hs-varid'>setCredentials</span>
-<a name="line-17"></a>    <span class='hs-layout'>)</span> <span class='hs-keyword'>where</span>
-<a name="line-18"></a>
-<a name="line-19"></a><span class='hs-keyword'>import</span> <span class='hs-conid'>Crypto</span><span class='hs-varop'>.</span><span class='hs-conid'>Random</span> <span class='hs-layout'>(</span><span class='hs-conid'>CPRG</span><span class='hs-layout'>)</span>
-<a name="line-20"></a><span class='hs-keyword'>import</span> <span class='hs-conid'>Data</span><span class='hs-varop'>.</span><span class='hs-conid'>ByteString</span> <span class='hs-layout'>(</span><span class='hs-conid'>ByteString</span><span class='hs-layout'>)</span>
-<a name="line-21"></a><span class='hs-keyword'>import</span> <span class='hs-conid'>Data</span><span class='hs-varop'>.</span><span class='hs-conid'>IORef</span> <span class='hs-layout'>(</span><span class='hs-conid'>IORef</span><span class='hs-layout'>)</span>
-<a name="line-22"></a><span class='hs-keyword'>import</span> <span class='hs-conid'>Data</span><span class='hs-varop'>.</span><span class='hs-conid'>Text</span> <span class='hs-layout'>(</span><span class='hs-conid'>Text</span><span class='hs-layout'>)</span>
-<a name="line-23"></a>
-<a name="line-24"></a><span class='hs-keyword'>import</span> <span class='hs-conid'>Web</span><span class='hs-varop'>.</span><span class='hs-conid'>OIDC</span><span class='hs-varop'>.</span><span class='hs-conid'>Client</span><span class='hs-varop'>.</span><span class='hs-conid'>Discovery</span><span class='hs-varop'>.</span><span class='hs-conid'>Provider</span> <span class='hs-layout'>(</span><span class='hs-conid'>Provider</span><span class='hs-layout'>)</span>
-<a name="line-25"></a><span class='hs-keyword'>import</span> <span class='hs-keyword'>qualified</span> <span class='hs-conid'>Web</span><span class='hs-varop'>.</span><span class='hs-conid'>OIDC</span><span class='hs-varop'>.</span><span class='hs-conid'>Client</span><span class='hs-varop'>.</span><span class='hs-conid'>Discovery</span><span class='hs-varop'>.</span><span class='hs-conid'>Provider</span> <span class='hs-keyword'>as</span> <span class='hs-conid'>P</span>
-<a name="line-26"></a>
-<a name="line-27"></a><a name="OIDC"></a><span class='hs-comment'>-- | This data type represents information needed in the OpenID flow.</span>
-<a name="line-28"></a><a name="OIDC"></a><span class='hs-keyword'>data</span> <span class='hs-conid'>OIDC</span> <span class='hs-keyglyph'>=</span> <span class='hs-conid'>OIDC</span>
-<a name="line-29"></a>    <span class='hs-layout'>{</span> <span class='hs-varid'>oidcAuthorizationSeverUrl</span> <span class='hs-keyglyph'>::</span> <span class='hs-conid'>Text</span>
-<a name="line-30"></a>    <span class='hs-layout'>,</span> <span class='hs-varid'>oidcTokenEndpoint</span>         <span class='hs-keyglyph'>::</span> <span class='hs-conid'>Text</span>
-<a name="line-31"></a>    <span class='hs-layout'>,</span> <span class='hs-varid'>oidcClientId</span>              <span class='hs-keyglyph'>::</span> <span class='hs-conid'>ByteString</span>
-<a name="line-32"></a>    <span class='hs-layout'>,</span> <span class='hs-varid'>oidcClientSecret</span>          <span class='hs-keyglyph'>::</span> <span class='hs-conid'>ByteString</span>
-<a name="line-33"></a>    <span class='hs-layout'>,</span> <span class='hs-varid'>oidcRedirectUri</span>           <span class='hs-keyglyph'>::</span> <span class='hs-conid'>ByteString</span>
-<a name="line-34"></a>    <span class='hs-layout'>,</span> <span class='hs-varid'>oidcProvider</span>              <span class='hs-keyglyph'>::</span> <span class='hs-conid'>Provider</span>
-<a name="line-35"></a>    <span class='hs-layout'>,</span> <span class='hs-varid'>oidcCPRGRef</span>               <span class='hs-keyglyph'>::</span> <span class='hs-conid'>CPRGRef</span>
-<a name="line-36"></a>    <span class='hs-layout'>}</span>
-<a name="line-37"></a>
-<a name="line-38"></a><a name="IORef"></a><span class='hs-keyword'>data</span> <span class='hs-conid'>CPRGRef</span> <span class='hs-keyword'>where</span>
-<a name="line-39"></a>    <span class='hs-conid'>Ref</span>   <span class='hs-keyglyph'>::</span> <span class='hs-layout'>(</span><span class='hs-conid'>CPRG</span> <span class='hs-varid'>g</span><span class='hs-layout'>)</span> <span class='hs-keyglyph'>=&gt;</span> <span class='hs-conid'>IORef</span> <span class='hs-varid'>g</span> <span class='hs-keyglyph'>-&gt;</span> <span class='hs-conid'>CPRGRef</span>
-<a name="line-40"></a>    <span class='hs-conid'>NoRef</span> <span class='hs-keyglyph'>::</span> <span class='hs-conid'>CPRGRef</span>
-<a name="line-41"></a>
-<a name="line-42"></a><a name="def"></a><span class='hs-definition'>def</span> <span class='hs-keyglyph'>::</span> <span class='hs-conid'>OIDC</span>
-<a name="line-43"></a><span class='hs-definition'>def</span> <span class='hs-keyglyph'>=</span> <span class='hs-conid'>OIDC</span>
-<a name="line-44"></a>    <span class='hs-layout'>{</span> <span class='hs-varid'>oidcAuthorizationSeverUrl</span> <span class='hs-keyglyph'>=</span> <span class='hs-varid'>error</span> <span class='hs-str'>"You must specify authorizationSeverUrl"</span>
-<a name="line-45"></a>    <span class='hs-layout'>,</span> <span class='hs-varid'>oidcTokenEndpoint</span>         <span class='hs-keyglyph'>=</span> <span class='hs-varid'>error</span> <span class='hs-str'>"You must specify tokenEndpoint"</span>
-<a name="line-46"></a>    <span class='hs-layout'>,</span> <span class='hs-varid'>oidcClientId</span>              <span class='hs-keyglyph'>=</span> <span class='hs-varid'>error</span> <span class='hs-str'>"You must specify clientId"</span>
-<a name="line-47"></a>    <span class='hs-layout'>,</span> <span class='hs-varid'>oidcClientSecret</span>          <span class='hs-keyglyph'>=</span> <span class='hs-varid'>error</span> <span class='hs-str'>"You must specify clientSecret"</span>
-<a name="line-48"></a>    <span class='hs-layout'>,</span> <span class='hs-varid'>oidcRedirectUri</span>           <span class='hs-keyglyph'>=</span> <span class='hs-varid'>error</span> <span class='hs-str'>"You must specify redirectUri"</span>
-<a name="line-49"></a>    <span class='hs-layout'>,</span> <span class='hs-varid'>oidcProvider</span>              <span class='hs-keyglyph'>=</span> <span class='hs-varid'>error</span> <span class='hs-str'>"You must specify provider"</span>
-<a name="line-50"></a>    <span class='hs-layout'>,</span> <span class='hs-varid'>oidcCPRGRef</span>               <span class='hs-keyglyph'>=</span> <span class='hs-conid'>NoRef</span>
-<a name="line-51"></a>    <span class='hs-layout'>}</span>
-<a name="line-52"></a>
-<a name="line-53"></a><a name="newOIDC"></a><span class='hs-comment'>-- | Create OIDC.</span>
-<a name="line-54"></a><span class='hs-comment'>--</span>
-<a name="line-55"></a><span class='hs-comment'>-- The first argument is used in a token decoding on ID Token Validation.</span>
-<a name="line-56"></a><span class='hs-definition'>newOIDC</span> <span class='hs-keyglyph'>::</span> <span class='hs-conid'>CPRG</span> <span class='hs-varid'>g</span> <span class='hs-keyglyph'>=&gt;</span> <span class='hs-conid'>IORef</span> <span class='hs-varid'>g</span> <span class='hs-keyglyph'>-&gt;</span> <span class='hs-conid'>OIDC</span>
-<a name="line-57"></a><span class='hs-definition'>newOIDC</span> <span class='hs-varid'>ref</span> <span class='hs-keyglyph'>=</span> <span class='hs-varid'>def</span> <span class='hs-layout'>{</span> <span class='hs-varid'>oidcCPRGRef</span> <span class='hs-keyglyph'>=</span> <span class='hs-conid'>Ref</span> <span class='hs-varid'>ref</span> <span class='hs-layout'>}</span>
-<a name="line-58"></a>
-<a name="line-59"></a><a name="newOIDC'"></a><span class='hs-definition'>newOIDC'</span> <span class='hs-keyglyph'>::</span> <span class='hs-conid'>OIDC</span>
-<a name="line-60"></a><span class='hs-definition'>newOIDC'</span> <span class='hs-keyglyph'>=</span> <span class='hs-varid'>def</span>
-<a name="line-61"></a>
-<a name="line-62"></a><a name="setProvider"></a><span class='hs-definition'>setProvider</span>
-<a name="line-63"></a>    <span class='hs-keyglyph'>::</span> <span class='hs-conid'>Provider</span>     <span class='hs-comment'>-- ^ OP's information (obtained by 'Web.OIDC.Client.Discovery.discover')</span>
-<a name="line-64"></a>    <span class='hs-keyglyph'>-&gt;</span> <span class='hs-conid'>OIDC</span>
-<a name="line-65"></a>    <span class='hs-keyglyph'>-&gt;</span> <span class='hs-conid'>OIDC</span>
-<a name="line-66"></a><span class='hs-definition'>setProvider</span> <span class='hs-varid'>p</span> <span class='hs-varid'>oidc</span> <span class='hs-keyglyph'>=</span>
-<a name="line-67"></a>    <span class='hs-varid'>oidc</span> <span class='hs-layout'>{</span> <span class='hs-varid'>oidcAuthorizationSeverUrl</span> <span class='hs-keyglyph'>=</span> <span class='hs-conid'>P</span><span class='hs-varop'>.</span><span class='hs-varid'>authorizationEndpoint</span> <span class='hs-varop'>.</span> <span class='hs-conid'>P</span><span class='hs-varop'>.</span><span class='hs-varid'>configuration</span> <span class='hs-varop'>$</span> <span class='hs-varid'>p</span>
-<a name="line-68"></a>         <span class='hs-layout'>,</span> <span class='hs-varid'>oidcTokenEndpoint</span>         <span class='hs-keyglyph'>=</span> <span class='hs-conid'>P</span><span class='hs-varop'>.</span><span class='hs-varid'>tokenEndpoint</span> <span class='hs-varop'>.</span> <span class='hs-conid'>P</span><span class='hs-varop'>.</span><span class='hs-varid'>configuration</span> <span class='hs-varop'>$</span> <span class='hs-varid'>p</span>
-<a name="line-69"></a>         <span class='hs-layout'>,</span> <span class='hs-varid'>oidcProvider</span>              <span class='hs-keyglyph'>=</span> <span class='hs-varid'>p</span>
-<a name="line-70"></a>         <span class='hs-layout'>}</span>
-<a name="line-71"></a>
-<a name="line-72"></a><a name="setCredentials"></a><span class='hs-definition'>setCredentials</span>
-<a name="line-73"></a>    <span class='hs-keyglyph'>::</span> <span class='hs-conid'>ByteString</span>   <span class='hs-comment'>-- ^ client ID</span>
-<a name="line-74"></a>    <span class='hs-keyglyph'>-&gt;</span> <span class='hs-conid'>ByteString</span>   <span class='hs-comment'>-- ^ client secret</span>
-<a name="line-75"></a>    <span class='hs-keyglyph'>-&gt;</span> <span class='hs-conid'>ByteString</span>   <span class='hs-comment'>-- ^ redirect URI (the HTTP endpont on your server that will receive a response from OP)</span>
-<a name="line-76"></a>    <span class='hs-keyglyph'>-&gt;</span> <span class='hs-conid'>OIDC</span>
-<a name="line-77"></a>    <span class='hs-keyglyph'>-&gt;</span> <span class='hs-conid'>OIDC</span>
-<a name="line-78"></a><span class='hs-definition'>setCredentials</span> <span class='hs-varid'>cid</span> <span class='hs-varid'>secret</span> <span class='hs-varid'>redirect</span> <span class='hs-varid'>oidc</span> <span class='hs-keyglyph'>=</span>
-<a name="line-79"></a>    <span class='hs-varid'>oidc</span> <span class='hs-layout'>{</span> <span class='hs-varid'>oidcClientId</span>     <span class='hs-keyglyph'>=</span> <span class='hs-varid'>cid</span>
-<a name="line-80"></a>         <span class='hs-layout'>,</span> <span class='hs-varid'>oidcClientSecret</span> <span class='hs-keyglyph'>=</span> <span class='hs-varid'>secret</span>
-<a name="line-81"></a>         <span class='hs-layout'>,</span> <span class='hs-varid'>oidcRedirectUri</span>  <span class='hs-keyglyph'>=</span> <span class='hs-varid'>redirect</span>
-<a name="line-82"></a>         <span class='hs-layout'>}</span>
+<a name="line-2"></a><span class='hs-comment'>{-|
+<a name="line-3"></a>    Module: Web.OIDC.Client.Settings
+<a name="line-4"></a>    Maintainer: krdlab@gmail.com
+<a name="line-5"></a>    Stability: experimental
+<a name="line-6"></a>-}</span>
+<a name="line-7"></a><span class='hs-keyword'>module</span> <span class='hs-conid'>Web</span><span class='hs-varop'>.</span><span class='hs-conid'>OIDC</span><span class='hs-varop'>.</span><span class='hs-conid'>Client</span><span class='hs-varop'>.</span><span class='hs-conid'>Settings</span>
+<a name="line-8"></a>    <span class='hs-layout'>(</span>
+<a name="line-9"></a>      <span class='hs-conid'>OIDC</span><span class='hs-layout'>(</span><span class='hs-keyglyph'>..</span><span class='hs-layout'>)</span>
+<a name="line-10"></a>    <span class='hs-layout'>,</span> <span class='hs-varid'>def</span>
+<a name="line-11"></a>    <span class='hs-layout'>,</span> <span class='hs-varid'>newOIDC</span>
+<a name="line-12"></a>    <span class='hs-layout'>,</span> <span class='hs-varid'>setCredentials</span>
+<a name="line-13"></a>    <span class='hs-layout'>)</span> <span class='hs-keyword'>where</span>
+<a name="line-14"></a>
+<a name="line-15"></a><span class='hs-keyword'>import</span> <span class='hs-conid'>Data</span><span class='hs-varop'>.</span><span class='hs-conid'>ByteString</span> <span class='hs-layout'>(</span><span class='hs-conid'>ByteString</span><span class='hs-layout'>)</span>
+<a name="line-16"></a><span class='hs-keyword'>import</span> <span class='hs-conid'>Data</span><span class='hs-varop'>.</span><span class='hs-conid'>Text</span> <span class='hs-layout'>(</span><span class='hs-conid'>Text</span><span class='hs-layout'>)</span>
+<a name="line-17"></a>
+<a name="line-18"></a><span class='hs-keyword'>import</span> <span class='hs-conid'>Web</span><span class='hs-varop'>.</span><span class='hs-conid'>OIDC</span><span class='hs-varop'>.</span><span class='hs-conid'>Client</span><span class='hs-varop'>.</span><span class='hs-conid'>Discovery</span><span class='hs-varop'>.</span><span class='hs-conid'>Provider</span> <span class='hs-layout'>(</span><span class='hs-conid'>Provider</span><span class='hs-layout'>)</span>
+<a name="line-19"></a><span class='hs-keyword'>import</span> <span class='hs-keyword'>qualified</span> <span class='hs-conid'>Web</span><span class='hs-varop'>.</span><span class='hs-conid'>OIDC</span><span class='hs-varop'>.</span><span class='hs-conid'>Client</span><span class='hs-varop'>.</span><span class='hs-conid'>Discovery</span><span class='hs-varop'>.</span><span class='hs-conid'>Provider</span> <span class='hs-keyword'>as</span> <span class='hs-conid'>P</span>
+<a name="line-20"></a>
+<a name="line-21"></a><a name="OIDC"></a><span class='hs-comment'>-- | This data type represents information needed in the OpenID flow.</span>
+<a name="line-22"></a><a name="OIDC"></a><span class='hs-keyword'>data</span> <span class='hs-conid'>OIDC</span> <span class='hs-keyglyph'>=</span> <span class='hs-conid'>OIDC</span>
+<a name="line-23"></a>    <span class='hs-layout'>{</span> <span class='hs-varid'>oidcAuthorizationSeverUrl</span> <span class='hs-keyglyph'>::</span> <span class='hs-conid'>Text</span>
+<a name="line-24"></a>    <span class='hs-layout'>,</span> <span class='hs-varid'>oidcTokenEndpoint</span>         <span class='hs-keyglyph'>::</span> <span class='hs-conid'>Text</span>
+<a name="line-25"></a>    <span class='hs-layout'>,</span> <span class='hs-varid'>oidcClientId</span>              <span class='hs-keyglyph'>::</span> <span class='hs-conid'>ByteString</span>
+<a name="line-26"></a>    <span class='hs-layout'>,</span> <span class='hs-varid'>oidcClientSecret</span>          <span class='hs-keyglyph'>::</span> <span class='hs-conid'>ByteString</span>
+<a name="line-27"></a>    <span class='hs-layout'>,</span> <span class='hs-varid'>oidcRedirectUri</span>           <span class='hs-keyglyph'>::</span> <span class='hs-conid'>ByteString</span>
+<a name="line-28"></a>    <span class='hs-layout'>,</span> <span class='hs-varid'>oidcProvider</span>              <span class='hs-keyglyph'>::</span> <span class='hs-conid'>Provider</span>
+<a name="line-29"></a>    <span class='hs-layout'>}</span>
+<a name="line-30"></a>
+<a name="line-31"></a><a name="def"></a><span class='hs-definition'>def</span> <span class='hs-keyglyph'>::</span> <span class='hs-conid'>OIDC</span>
+<a name="line-32"></a><span class='hs-definition'>def</span> <span class='hs-keyglyph'>=</span> <span class='hs-conid'>OIDC</span>
+<a name="line-33"></a>    <span class='hs-layout'>{</span> <span class='hs-varid'>oidcAuthorizationSeverUrl</span> <span class='hs-keyglyph'>=</span> <span class='hs-varid'>error</span> <span class='hs-str'>"You must specify authorizationSeverUrl"</span>
+<a name="line-34"></a>    <span class='hs-layout'>,</span> <span class='hs-varid'>oidcTokenEndpoint</span>         <span class='hs-keyglyph'>=</span> <span class='hs-varid'>error</span> <span class='hs-str'>"You must specify tokenEndpoint"</span>
+<a name="line-35"></a>    <span class='hs-layout'>,</span> <span class='hs-varid'>oidcClientId</span>              <span class='hs-keyglyph'>=</span> <span class='hs-varid'>error</span> <span class='hs-str'>"You must specify clientId"</span>
+<a name="line-36"></a>    <span class='hs-layout'>,</span> <span class='hs-varid'>oidcClientSecret</span>          <span class='hs-keyglyph'>=</span> <span class='hs-varid'>error</span> <span class='hs-str'>"You must specify clientSecret"</span>
+<a name="line-37"></a>    <span class='hs-layout'>,</span> <span class='hs-varid'>oidcRedirectUri</span>           <span class='hs-keyglyph'>=</span> <span class='hs-varid'>error</span> <span class='hs-str'>"You must specify redirectUri"</span>
+<a name="line-38"></a>    <span class='hs-layout'>,</span> <span class='hs-varid'>oidcProvider</span>              <span class='hs-keyglyph'>=</span> <span class='hs-varid'>error</span> <span class='hs-str'>"You must specify provider"</span>
+<a name="line-39"></a>    <span class='hs-layout'>}</span>
+<a name="line-40"></a>
+<a name="line-41"></a><a name="newOIDC"></a><span class='hs-definition'>newOIDC</span>
+<a name="line-42"></a>    <span class='hs-keyglyph'>::</span> <span class='hs-conid'>Provider</span>     <span class='hs-comment'>-- ^ OP's information (obtained by 'Web.OIDC.Client.Discovery.discover')</span>
+<a name="line-43"></a>    <span class='hs-keyglyph'>-&gt;</span> <span class='hs-conid'>OIDC</span>
+<a name="line-44"></a><span class='hs-definition'>newOIDC</span> <span class='hs-varid'>p</span> <span class='hs-keyglyph'>=</span>
+<a name="line-45"></a>    <span class='hs-varid'>def</span> <span class='hs-layout'>{</span> <span class='hs-varid'>oidcAuthorizationSeverUrl</span> <span class='hs-keyglyph'>=</span> <span class='hs-conid'>P</span><span class='hs-varop'>.</span><span class='hs-varid'>authorizationEndpoint</span> <span class='hs-varop'>.</span> <span class='hs-conid'>P</span><span class='hs-varop'>.</span><span class='hs-varid'>configuration</span> <span class='hs-varop'>$</span> <span class='hs-varid'>p</span>
+<a name="line-46"></a>        <span class='hs-layout'>,</span> <span class='hs-varid'>oidcTokenEndpoint</span>         <span class='hs-keyglyph'>=</span> <span class='hs-conid'>P</span><span class='hs-varop'>.</span><span class='hs-varid'>tokenEndpoint</span> <span class='hs-varop'>.</span> <span class='hs-conid'>P</span><span class='hs-varop'>.</span><span class='hs-varid'>configuration</span> <span class='hs-varop'>$</span> <span class='hs-varid'>p</span>
+<a name="line-47"></a>        <span class='hs-layout'>,</span> <span class='hs-varid'>oidcProvider</span>              <span class='hs-keyglyph'>=</span> <span class='hs-varid'>p</span>
+<a name="line-48"></a>        <span class='hs-layout'>}</span>
+<a name="line-49"></a>
+<a name="line-50"></a><a name="setCredentials"></a><span class='hs-definition'>setCredentials</span>
+<a name="line-51"></a>    <span class='hs-keyglyph'>::</span> <span class='hs-conid'>ByteString</span>   <span class='hs-comment'>-- ^ client ID</span>
+<a name="line-52"></a>    <span class='hs-keyglyph'>-&gt;</span> <span class='hs-conid'>ByteString</span>   <span class='hs-comment'>-- ^ client secret</span>
+<a name="line-53"></a>    <span class='hs-keyglyph'>-&gt;</span> <span class='hs-conid'>ByteString</span>   <span class='hs-comment'>-- ^ redirect URI (the HTTP endpont on your server that will receive a response from OP)</span>
+<a name="line-54"></a>    <span class='hs-keyglyph'>-&gt;</span> <span class='hs-conid'>OIDC</span>
+<a name="line-55"></a>    <span class='hs-keyglyph'>-&gt;</span> <span class='hs-conid'>OIDC</span>
+<a name="line-56"></a><span class='hs-definition'>setCredentials</span> <span class='hs-varid'>cid</span> <span class='hs-varid'>secret</span> <span class='hs-varid'>redirect</span> <span class='hs-varid'>oidc</span> <span class='hs-keyglyph'>=</span>
+<a name="line-57"></a>    <span class='hs-varid'>oidc</span> <span class='hs-layout'>{</span> <span class='hs-varid'>oidcClientId</span>     <span class='hs-keyglyph'>=</span> <span class='hs-varid'>cid</span>
+<a name="line-58"></a>         <span class='hs-layout'>,</span> <span class='hs-varid'>oidcClientSecret</span> <span class='hs-keyglyph'>=</span> <span class='hs-varid'>secret</span>
+<a name="line-59"></a>         <span class='hs-layout'>,</span> <span class='hs-varid'>oidcRedirectUri</span>  <span class='hs-keyglyph'>=</span> <span class='hs-varid'>redirect</span>
+<a name="line-60"></a>         <span class='hs-layout'>}</span>
 </pre></body>
 </html>

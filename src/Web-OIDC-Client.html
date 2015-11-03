@@ -7,38 +7,38 @@
 <link type='text/css' rel='stylesheet' href='hscolour.css' />
 </head>
 <body>
-<pre><a name="line-1"></a><span class='hs-comment'>{-# LANGUAGE OverloadedStrings #-}</span>
-<a name="line-2"></a><span class='hs-comment'>{-# LANGUAGE GADTs #-}</span>
-<a name="line-3"></a><span class='hs-comment'>{-|
-<a name="line-4"></a>Module: Web.OIDC.Client
-<a name="line-5"></a>Maintainer: krdlab@gmail.com
-<a name="line-6"></a>Stability: experimental
-<a name="line-7"></a>-}</span>
-<a name="line-8"></a><span class='hs-keyword'>module</span> <span class='hs-conid'>Web</span><span class='hs-varop'>.</span><span class='hs-conid'>OIDC</span><span class='hs-varop'>.</span><span class='hs-conid'>Client</span>
-<a name="line-9"></a>    <span class='hs-layout'>(</span>
-<a name="line-10"></a>    <span class='hs-comment'>-- * OpenID Connect Discovery</span>
-<a name="line-11"></a>      <span class='hs-keyword'>module</span> <span class='hs-conid'>Web</span><span class='hs-varop'>.</span><span class='hs-conid'>OIDC</span><span class='hs-varop'>.</span><span class='hs-conid'>Client</span><span class='hs-varop'>.</span><span class='hs-conid'>Discovery</span>
-<a name="line-12"></a>
-<a name="line-13"></a>    <span class='hs-comment'>-- * Settings and Tokens</span>
-<a name="line-14"></a>    <span class='hs-layout'>,</span> <span class='hs-conid'>OIDC</span><span class='hs-layout'>,</span> <span class='hs-varid'>newOIDC</span><span class='hs-layout'>,</span> <span class='hs-varid'>newOIDC'</span><span class='hs-layout'>,</span> <span class='hs-varid'>setProvider</span><span class='hs-layout'>,</span> <span class='hs-varid'>setCredentials</span>
-<a name="line-15"></a>    <span class='hs-layout'>,</span> <span class='hs-keyword'>module</span> <span class='hs-conid'>Web</span><span class='hs-varop'>.</span><span class='hs-conid'>OIDC</span><span class='hs-varop'>.</span><span class='hs-conid'>Client</span><span class='hs-varop'>.</span><span class='hs-conid'>Tokens</span>
-<a name="line-16"></a>
-<a name="line-17"></a>    <span class='hs-comment'>-- * Authorization Code Flow</span>
-<a name="line-18"></a>    <span class='hs-layout'>,</span> <span class='hs-keyword'>module</span> <span class='hs-conid'>Web</span><span class='hs-varop'>.</span><span class='hs-conid'>OIDC</span><span class='hs-varop'>.</span><span class='hs-conid'>Client</span><span class='hs-varop'>.</span><span class='hs-conid'>CodeFlow</span>
-<a name="line-19"></a>
-<a name="line-20"></a>    <span class='hs-comment'>-- * Types and Exceptions</span>
-<a name="line-21"></a>    <span class='hs-layout'>,</span> <span class='hs-keyword'>module</span> <span class='hs-conid'>Web</span><span class='hs-varop'>.</span><span class='hs-conid'>OIDC</span><span class='hs-varop'>.</span><span class='hs-conid'>Client</span><span class='hs-varop'>.</span><span class='hs-conid'>Types</span>
-<a name="line-22"></a>
-<a name="line-23"></a>    <span class='hs-comment'>-- * Re-exports</span>
-<a name="line-24"></a>    <span class='hs-layout'>,</span> <span class='hs-keyword'>module</span> <span class='hs-conid'>Jose</span><span class='hs-varop'>.</span><span class='hs-conid'>Jwt</span>
-<a name="line-25"></a>    <span class='hs-layout'>)</span> <span class='hs-keyword'>where</span>
-<a name="line-26"></a>
-<a name="line-27"></a><span class='hs-keyword'>import</span> <span class='hs-conid'>Web</span><span class='hs-varop'>.</span><span class='hs-conid'>OIDC</span><span class='hs-varop'>.</span><span class='hs-conid'>Client</span><span class='hs-varop'>.</span><span class='hs-conid'>CodeFlow</span>
-<a name="line-28"></a><span class='hs-keyword'>import</span> <span class='hs-conid'>Web</span><span class='hs-varop'>.</span><span class='hs-conid'>OIDC</span><span class='hs-varop'>.</span><span class='hs-conid'>Client</span><span class='hs-varop'>.</span><span class='hs-conid'>Settings</span> <span class='hs-layout'>(</span><span class='hs-conid'>OIDC</span><span class='hs-layout'>,</span> <span class='hs-varid'>newOIDC</span><span class='hs-layout'>,</span> <span class='hs-varid'>newOIDC'</span><span class='hs-layout'>,</span> <span class='hs-varid'>setProvider</span><span class='hs-layout'>,</span> <span class='hs-varid'>setCredentials</span><span class='hs-layout'>)</span>
-<a name="line-29"></a><span class='hs-keyword'>import</span> <span class='hs-conid'>Web</span><span class='hs-varop'>.</span><span class='hs-conid'>OIDC</span><span class='hs-varop'>.</span><span class='hs-conid'>Client</span><span class='hs-varop'>.</span><span class='hs-conid'>Discovery</span>
-<a name="line-30"></a><span class='hs-keyword'>import</span> <span class='hs-conid'>Web</span><span class='hs-varop'>.</span><span class='hs-conid'>OIDC</span><span class='hs-varop'>.</span><span class='hs-conid'>Client</span><span class='hs-varop'>.</span><span class='hs-conid'>Tokens</span>
-<a name="line-31"></a><span class='hs-keyword'>import</span> <span class='hs-conid'>Web</span><span class='hs-varop'>.</span><span class='hs-conid'>OIDC</span><span class='hs-varop'>.</span><span class='hs-conid'>Client</span><span class='hs-varop'>.</span><span class='hs-conid'>Types</span>
+<pre><a name="line-1"></a><span class='hs-comment'>{-|
+<a name="line-2"></a>    Module: Web.OIDC.Client
+<a name="line-3"></a>    Maintainer: krdlab@gmail.com
+<a name="line-4"></a>    Stability: experimental
+<a name="line-5"></a>-}</span>
+<a name="line-6"></a><span class='hs-keyword'>module</span> <span class='hs-conid'>Web</span><span class='hs-varop'>.</span><span class='hs-conid'>OIDC</span><span class='hs-varop'>.</span><span class='hs-conid'>Client</span>
+<a name="line-7"></a>    <span class='hs-layout'>(</span>
+<a name="line-8"></a>    <span class='hs-comment'>-- * OpenID Connect Discovery</span>
+<a name="line-9"></a>      <span class='hs-keyword'>module</span> <span class='hs-conid'>Web</span><span class='hs-varop'>.</span><span class='hs-conid'>OIDC</span><span class='hs-varop'>.</span><span class='hs-conid'>Client</span><span class='hs-varop'>.</span><span class='hs-conid'>Discovery</span>
+<a name="line-10"></a>
+<a name="line-11"></a>    <span class='hs-comment'>-- * Settings and Tokens</span>
+<a name="line-12"></a>    <span class='hs-layout'>,</span> <span class='hs-conid'>OIDC</span><span class='hs-layout'>,</span> <span class='hs-varid'>newOIDC</span><span class='hs-layout'>,</span> <span class='hs-varid'>setCredentials</span>
+<a name="line-13"></a>    <span class='hs-layout'>,</span> <span class='hs-keyword'>module</span> <span class='hs-conid'>Web</span><span class='hs-varop'>.</span><span class='hs-conid'>OIDC</span><span class='hs-varop'>.</span><span class='hs-conid'>Client</span><span class='hs-varop'>.</span><span class='hs-conid'>Tokens</span>
+<a name="line-14"></a>
+<a name="line-15"></a>    <span class='hs-comment'>-- * Authorization Code Flow</span>
+<a name="line-16"></a>    <span class='hs-layout'>,</span> <span class='hs-keyword'>module</span> <span class='hs-conid'>Web</span><span class='hs-varop'>.</span><span class='hs-conid'>OIDC</span><span class='hs-varop'>.</span><span class='hs-conid'>Client</span><span class='hs-varop'>.</span><span class='hs-conid'>CodeFlow</span>
+<a name="line-17"></a>
+<a name="line-18"></a>    <span class='hs-comment'>-- * Types and Exceptions</span>
+<a name="line-19"></a>    <span class='hs-layout'>,</span> <span class='hs-keyword'>module</span> <span class='hs-conid'>Web</span><span class='hs-varop'>.</span><span class='hs-conid'>OIDC</span><span class='hs-varop'>.</span><span class='hs-conid'>Client</span><span class='hs-varop'>.</span><span class='hs-conid'>Types</span>
+<a name="line-20"></a>
+<a name="line-21"></a>    <span class='hs-comment'>-- * Re-exports</span>
+<a name="line-22"></a>    <span class='hs-layout'>,</span> <span class='hs-keyword'>module</span> <span class='hs-conid'>Jose</span><span class='hs-varop'>.</span><span class='hs-conid'>Jwt</span>
+<a name="line-23"></a>    <span class='hs-layout'>)</span> <span class='hs-keyword'>where</span>
+<a name="line-24"></a>
+<a name="line-25"></a><span class='hs-keyword'>import</span> <span class='hs-conid'>Web</span><span class='hs-varop'>.</span><span class='hs-conid'>OIDC</span><span class='hs-varop'>.</span><span class='hs-conid'>Client</span><span class='hs-varop'>.</span><span class='hs-conid'>CodeFlow</span>
+<a name="line-26"></a><span class='hs-keyword'>import</span> <span class='hs-conid'>Web</span><span class='hs-varop'>.</span><span class='hs-conid'>OIDC</span><span class='hs-varop'>.</span><span class='hs-conid'>Client</span><span class='hs-varop'>.</span><span class='hs-conid'>Settings</span> <span class='hs-layout'>(</span><span class='hs-conid'>OIDC</span><span class='hs-layout'>,</span> <span class='hs-varid'>newOIDC</span><span class='hs-layout'>,</span> <span class='hs-varid'>setCredentials</span><span class='hs-layout'>)</span>
+<a name="line-27"></a><span class='hs-keyword'>import</span> <span class='hs-conid'>Web</span><span class='hs-varop'>.</span><span class='hs-conid'>OIDC</span><span class='hs-varop'>.</span><span class='hs-conid'>Client</span><span class='hs-varop'>.</span><span class='hs-conid'>Discovery</span>
+<a name="line-28"></a><span class='hs-keyword'>import</span> <span class='hs-conid'>Web</span><span class='hs-varop'>.</span><span class='hs-conid'>OIDC</span><span class='hs-varop'>.</span><span class='hs-conid'>Client</span><span class='hs-varop'>.</span><span class='hs-conid'>Tokens</span>
+<a name="line-29"></a><span class='hs-keyword'>import</span> <span class='hs-conid'>Web</span><span class='hs-varop'>.</span><span class='hs-conid'>OIDC</span><span class='hs-varop'>.</span><span class='hs-conid'>Client</span><span class='hs-varop'>.</span><span class='hs-conid'>Types</span>
+<a name="line-30"></a>
+<a name="line-31"></a><span class='hs-keyword'>import</span> <span class='hs-conid'>Jose</span><span class='hs-varop'>.</span><span class='hs-conid'>Jwt</span>
 <a name="line-32"></a>
-<a name="line-33"></a><span class='hs-keyword'>import</span> <span class='hs-conid'>Jose</span><span class='hs-varop'>.</span><span class='hs-conid'>Jwt</span>
+<a name="line-33"></a><span class='hs-comment'>{-# ANN module "HLint: ignore Use import/export shortcut" #-}</span>
 </pre></body>
 </html>
