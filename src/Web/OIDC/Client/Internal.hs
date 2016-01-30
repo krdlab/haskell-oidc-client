@@ -6,7 +6,6 @@
 -}
 module Web.OIDC.Client.Internal where
 
-import Control.Applicative ((<$>), (<*>))
 import Control.Monad (mzero)
 import Control.Monad.Catch (MonadThrow, throwM, MonadCatch)
 import Data.Aeson (FromJSON, parseJSON, Value(..), (.:), (.:?))

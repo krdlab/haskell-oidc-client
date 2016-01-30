@@ -16,12 +16,10 @@ module Web.OIDC.Client.Discovery
     , Configuration(..)
     ) where
 
-import Control.Applicative ((<$>))
 import Control.Monad.Catch (throwM, catch)
 import Data.Aeson (decode)
 import Data.Text (append)
 import Data.Maybe (fromMaybe)
-import Data.Monoid (mempty)
 import qualified Jose.Jwk as Jwk
 import Network.HTTP.Client (Manager, httpLbs, responseBody)
 

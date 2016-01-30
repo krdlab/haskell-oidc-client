@@ -3,7 +3,6 @@
 
 module Main where
 
-import Control.Applicative ((<$>))
 import Control.Monad.IO.Class (liftIO)
 import Crypto.Random.AESCtr (makeSystem)
 import Crypto.Random.API (CPRG, cprgGenBytes)
@@ -60,7 +59,7 @@ run oidc cprg ssm mgr = scotty 3000 $ do
 
     post "/login" $ do
         state <- genState
-        loc <- liftIO $ O.getAuthenticationRequestUrl oidc [O.Email] (Just state) []
+        loc <- liftIO $ O.getAuthenticationRequestUrl oidc [O.email] (Just state) []
         sid <- genSessionId
         saveState sid state
         setSimpleCookie "test-session" sid
