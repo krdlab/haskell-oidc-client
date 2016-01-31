@@ -36,7 +36,7 @@ tests = do
             provider <- discover google manager
             let oidc = setCredentials clientId clientSecret redirectUri $ newOIDC provider
                 state = "dummy state"
-            url <- getAuthenticationRequestUrl oidc [Email] (Just state) [("nonce", Just nonce)]
+            url <- getAuthenticationRequestUrl oidc [email] (Just state) [("nonce", Just nonce)]
             show url `shouldContain` (toES "scope" ++ "=" ++ toES "openid email")
             show url `shouldContain` (toES "state" ++ "=" ++ toES state)
             show url `shouldContain` (toES "nonce" ++ "=" ++ toES nonce)
