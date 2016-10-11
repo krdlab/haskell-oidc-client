@@ -31,7 +31,7 @@ data Configuration = Configuration
     , jwksUri                           :: Text
     , responseTypesSupported            :: [Text]
     , subjectTypesSupported             :: [Text]
-    , idTokenSigningAlgValuesSupported  :: Maybe [Text] -- TODO: REQUIRED
+    , idTokenSigningAlgValuesSupported  :: [Text]
     , scopesSupported                   :: Maybe [ScopeValue]
     , tokenEndpointAuthMethodsSupported :: Maybe [Text]
     , claimsSupported                   :: Maybe [Text]
