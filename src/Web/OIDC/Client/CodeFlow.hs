@@ -14,18 +14,17 @@ module Web.OIDC.Client.CodeFlow
     , getCurrentIntDate
     ) where
 
-import Control.Applicative ((<$>))
 import Control.Monad (unless)
 import Control.Monad.Catch (MonadThrow, throwM, MonadCatch, catch)
 import Data.Aeson (decode)
 import qualified Data.ByteString.Char8 as B
 import Data.List (nub)
-import Data.Text (Text)
+import Data.Text (Text, unpack)
 import Data.Text.Encoding (decodeUtf8)
 import Data.Time.Clock.POSIX (getPOSIXTime)
 import Jose.Jwt (Jwt)
 import qualified Jose.Jwt as Jwt
-import Network.HTTP.Client (getUri, setQueryString, applyBasicAuth, urlEncodedBody, Request(..), Manager, httpLbs, responseBody)
+import Network.HTTP.Client (getUri, setQueryString, urlEncodedBody, Request(..), Manager, httpLbs, responseBody)
 import Network.URI (URI)
 
 import Web.OIDC.Client.Settings (OIDC(..))
@@ -33,7 +32,7 @@ import qualified Web.OIDC.Client.Discovery.Provider as P
 import qualified Web.OIDC.Client.Internal as I
 import Web.OIDC.Client.Internal (parseUrl)
 import Web.OIDC.Client.Tokens (Tokens(..), IdToken(..))
-import Web.OIDC.Client.Types (Scope, ScopeValue(..), Code, State, Parameters, OpenIdException(..))
+import Web.OIDC.Client.Types (Scope, openId, Code, State, Parameters, OpenIdException(..))
 
 -- | Make URL for Authorization Request.
 getAuthenticationRequestUrl
@@ -53,7 +52,7 @@ getAuthenticationRequestUrl oidc scope state params = do
         [ ("response_type", Just "code")
         , ("client_id",     Just $ oidcClientId oidc)
         , ("redirect_uri",  Just $ oidcRedirectUri oidc)
-        , ("scope",         Just $ B.pack . unwords . nub . map show $ OpenId:scope)
+        , ("scope",         Just $ B.pack . unwords . nub . map unpack $ openId:scope)
         ]
     state' =
         case state of
@@ -77,7 +76,7 @@ requestTokens oidc code manager = do
   where
     getTokensJson = do
         req <- parseUrl endpoint
-        let req' = applyBasicAuth cid sec $ urlEncodedBody body $ req { method = "POST" }
+        let req' = urlEncodedBody body $ req { method = "POST" }
         res <- httpLbs req' manager
         return $ responseBody res
     endpoint = oidcTokenEndpoint oidc
@@ -85,9 +84,11 @@ requestTokens oidc code manager = do
     sec      = oidcClientSecret oidc
     redirect = oidcRedirectUri oidc
     body     =
-        [ ("grant_type",   "authorization_code")
-        , ("code",         code)
-        , ("redirect_uri", redirect)
+        [ ("grant_type",    "authorization_code")
+        , ("code",          code)
+        , ("client_id",     cid)
+        , ("client_secret", sec)
+        , ("redirect_uri",  redirect)
         ]
 
 validate :: OIDC -> I.TokensResponse -> IO Tokens
