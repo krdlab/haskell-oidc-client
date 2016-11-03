@@ -46,7 +46,7 @@ getAuthenticationRequestUrl oidc scope state params = do
     req <- parseUrl endpoint `catch` I.rethrow
     return $ getUri $ setQueryString query req
   where
-    endpoint  = oidcAuthorizationSeverUrl oidc
+    endpoint  = oidcAuthorizationServerUrl oidc
     query     = requireds ++ state' ++ params
     requireds =
         [ ("response_type", Just "code")

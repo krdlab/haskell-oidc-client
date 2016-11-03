@@ -20,31 +20,31 @@ import qualified Web.OIDC.Client.Discovery.Provider as P
 
 -- | This data type represents information needed in the OpenID flow.
 data OIDC = OIDC
-    { oidcAuthorizationSeverUrl :: Text
-    , oidcTokenEndpoint         :: Text
-    , oidcClientId              :: ByteString
-    , oidcClientSecret          :: ByteString
-    , oidcRedirectUri           :: ByteString
-    , oidcProvider              :: Provider
+    { oidcAuthorizationServerUrl :: Text
+    , oidcTokenEndpoint          :: Text
+    , oidcClientId               :: ByteString
+    , oidcClientSecret           :: ByteString
+    , oidcRedirectUri            :: ByteString
+    , oidcProvider               :: Provider
     }
 
 def :: OIDC
 def = OIDC
-    { oidcAuthorizationSeverUrl = error "You must specify authorizationSeverUrl"
-    , oidcTokenEndpoint         = error "You must specify tokenEndpoint"
-    , oidcClientId              = error "You must specify clientId"
-    , oidcClientSecret          = error "You must specify clientSecret"
-    , oidcRedirectUri           = error "You must specify redirectUri"
-    , oidcProvider              = error "You must specify provider"
+    { oidcAuthorizationServerUrl = error "You must specify authorizationServerUrl"
+    , oidcTokenEndpoint          = error "You must specify tokenEndpoint"
+    , oidcClientId               = error "You must specify clientId"
+    , oidcClientSecret           = error "You must specify clientSecret"
+    , oidcRedirectUri            = error "You must specify redirectUri"
+    , oidcProvider               = error "You must specify provider"
     }
 
 newOIDC
     :: Provider     -- ^ OP's information (obtained by 'Web.OIDC.Client.Discovery.discover')
     -> OIDC
 newOIDC p =
-    def { oidcAuthorizationSeverUrl = P.authorizationEndpoint . P.configuration $ p
-        , oidcTokenEndpoint         = P.tokenEndpoint . P.configuration $ p
-        , oidcProvider              = p
+    def { oidcAuthorizationServerUrl = P.authorizationEndpoint . P.configuration $ p
+        , oidcTokenEndpoint          = P.tokenEndpoint . P.configuration $ p
+        , oidcProvider               = p
         }
 
 setCredentials
