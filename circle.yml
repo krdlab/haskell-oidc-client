@@ -3,13 +3,19 @@ general:
     ignore:
       - gh-pages
 
-machine:
-  ghc:
-    version: 7.10.2
-
 dependencies:
+  cache_directories:
+    - ~/.stack
+    - .stack-work
+  pre:
+    - wget https://www.stackage.org/stack/linux-x86_64-static -O /tmp/stack.tar.gz    # curl -sSL https://get.haskellstack.org/ | sh
+    - tar xzf /tmp/stack.tar.gz -C /tmp/
+    - sudo mv /tmp/stack-1.4.0-linux-x86_64-static/stack /usr/bin/stack
+    - sudo chmod +x /usr/bin/stack
   override:
-    - cabal update
-    - cabal sandbox init
-    - cabal install --only-dependencies
-    - cabal install --only-dependencies --enable-tests
+    - stack setup
+    - stack build
+
+test:
+  override:
+    - stack test
