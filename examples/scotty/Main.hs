@@ -7,7 +7,7 @@ import Control.Monad.IO.Class (liftIO)
 import Crypto.Random.AESCtr (makeSystem)
 import Crypto.Random.API (CPRG, cprgGenBytes)
 import Data.ByteString (ByteString)
-import Data.ByteString.Base32 (encode)
+import Data.ByteString.Base64.URL (encode)
 import qualified Data.ByteString.Char8 as B
 import Data.IORef (IORef, newIORef, atomicModifyIORef', readIORef)
 import Data.Map (Map)
