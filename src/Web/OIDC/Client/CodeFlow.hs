@@ -16,7 +16,7 @@ module Web.OIDC.Client.CodeFlow
 
 import Control.Monad (unless)
 import Control.Monad.Catch (MonadThrow, throwM, MonadCatch, catch)
-import Data.Aeson (decode)
+import Data.Aeson (eitherDecode)
 import qualified Data.ByteString.Char8 as B
 import Data.List (nub)
 import Data.Text (Text, unpack)
@@ -70,9 +70,9 @@ getAuthenticationRequestUrl oidc scope state params = do
 requestTokens :: OIDC -> Code -> Manager -> IO Tokens
 requestTokens oidc code manager = do
     json <- getTokensJson `catch` I.rethrow
-    case decode json of
-        Just ts -> validate oidc ts
-        Nothing -> error "failed to decode tokens json" -- TODO
+    case eitherDecode json of
+        Right ts -> validate oidc ts
+        Left err -> error $ "failed to decode tokens json: " ++ err
   where
     getTokensJson = do
         req <- parseUrl endpoint
