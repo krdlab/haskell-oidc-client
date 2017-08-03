@@ -6,11 +6,13 @@
 -}
 module Web.OIDC.Client.Internal where
 
+import Control.Applicative ((<|>))
 import Control.Monad (mzero)
 import Control.Monad.Catch (MonadThrow, throwM, MonadCatch)
 import Data.Aeson (FromJSON, parseJSON, Value(..), (.:), (.:?))
 import Data.Maybe (fromJust)
 import Data.Text (Text, unpack)
+import Data.Text.Read (decimal)
 import Jose.Jwt (Jwt, JwtClaims(..))
 import Network.HTTP.Client (HttpException, parseUrl, Request)
 import Prelude hiding (exp)
@@ -31,9 +33,15 @@ instance FromJSON TokensResponse where
         <$> o .:  "access_token"
         <*> o .:  "token_type"
         <*> o .:  "id_token"
-        <*> o .:? "expires_in"
+        <*> ( o .:? "expires_in" <|> (>>= textToInt) <$> (o .:? "expires_in") )
         <*> o .:? "refresh_token"
-    parseJSON _          = mzero
+    parseJSON _          = mzero 
+
+textToInt :: Text -> Maybe Integer
+textToInt t = case decimal t of
+    Left _ -> Nothing
+    Right (i,_) -> Just i
+
 
 rethrow :: (MonadCatch m) => HttpException -> m a
 rethrow = throwM . InternalHttpException
