@@ -16,10 +16,11 @@ module Web.OIDC.Client.CodeFlow
 
 import Control.Monad (unless)
 import Control.Monad.Catch (MonadThrow, throwM, MonadCatch, catch)
+import Data.Monoid ((<>))
 import Data.Aeson (eitherDecode)
 import qualified Data.ByteString.Char8 as B
 import Data.List (nub)
-import Data.Text (Text, unpack)
+import Data.Text (Text, pack, unpack)
 import Data.Text.Encoding (decodeUtf8)
 import Data.Time.Clock.POSIX (getPOSIXTime)
 import Jose.Jwt (Jwt)
@@ -128,15 +129,15 @@ validateClaims :: Text -> Text -> Jwt.IntDate -> Jwt.JwtClaims -> IO ()
 validateClaims issuer' clientId' now claims' = do
     iss' <- getIss claims'
     unless (iss' == issuer')
-        $ throwM $ ValidationException "issuer"
+        $ throwM $ ValidationException $ "issuer from token \"" <> iss' <> "\" different than expected issuer \"" <> issuer' <> "\""
 
     aud' <- getAud claims'
     unless (clientId' `elem` aud')
-        $ throwM $ ValidationException "audience"
+        $ throwM $ ValidationException $ "our client \"" <> clientId' <> "\" isn't contained in the token's audience " <> (pack . show) aud'
 
     exp' <- getExp claims'
     unless (now < exp')
-        $ throwM $ ValidationException "expire"
+        $ throwM $ ValidationException "received token has expired"
   where
     getIss c = get Jwt.jwtIss c "'iss' claim was not found"
     getAud c = get Jwt.jwtAud c "'aud' claim was not found"
