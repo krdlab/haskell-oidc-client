@@ -73,7 +73,7 @@ requestTokens oidc code manager = do
     json <- getTokensJson `catch` I.rethrow
     case eitherDecode json of
         Right ts -> validate oidc ts
-        Left err -> error $ "failed to decode tokens json: " ++ err
+        Left err -> error $ "failed to decode tokens json: " ++ err     -- TODO: Exception
   where
     getTokensJson = do
         req <- parseUrl endpoint
