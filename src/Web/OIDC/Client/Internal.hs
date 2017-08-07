@@ -30,18 +30,17 @@ data TokensResponse = TokensResponse
 
 instance FromJSON TokensResponse where
     parseJSON (Object o) = TokensResponse
-        <$> o .:  "access_token"
-        <*> o .:  "token_type"
-        <*> o .:  "id_token"
-        <*> ( o .:? "expires_in" <|> (>>= textToInt) <$> (o .:? "expires_in") )
-        <*> o .:? "refresh_token"
-    parseJSON _          = mzero 
+        <$>  o .:  "access_token"
+        <*>  o .:  "token_type"
+        <*>  o .:  "id_token"
+        <*> (o .:? "expires_in" <|> (>>= textToInt) <$> (o .:? "expires_in"))
+        <*>  o .:? "refresh_token"
+    parseJSON _          = mzero
 
 textToInt :: Text -> Maybe Integer
 textToInt t = case decimal t of
-    Left _ -> Nothing
-    Right (i,_) -> Just i
-
+    Right (i, _) -> Just i
+    Left  _      -> Nothing
 
 rethrow :: (MonadCatch m) => HttpException -> m a
 rethrow = throwM . InternalHttpException
