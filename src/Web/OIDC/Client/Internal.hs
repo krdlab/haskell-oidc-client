@@ -14,7 +14,7 @@ import Data.Maybe (fromJust)
 import Data.Text (Text, unpack)
 import Data.Text.Read (decimal)
 import Jose.Jwt (Jwt, JwtClaims(..))
-import Network.HTTP.Client (HttpException, parseUrl, Request)
+import Network.HTTP.Client (HttpException, parseRequest, Request)
 import Prelude hiding (exp)
 import Web.OIDC.Client.Tokens (IdTokenClaims(..))
 import Web.OIDC.Client.Types (OpenIdException(InternalHttpException))
@@ -55,4 +55,4 @@ toIdTokenClaims c = IdTokenClaims   -- FIXME: fromJust
     }
 
 parseUrl :: MonadThrow m => Text -> m Request
-parseUrl = Network.HTTP.Client.parseUrl . unpack
+parseUrl = Network.HTTP.Client.parseRequest . unpack
