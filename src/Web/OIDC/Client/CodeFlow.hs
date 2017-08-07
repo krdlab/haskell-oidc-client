@@ -16,10 +16,10 @@ module Web.OIDC.Client.CodeFlow
 
 import Control.Monad (unless)
 import Control.Monad.Catch (MonadThrow, throwM, MonadCatch, catch)
-import Data.Monoid ((<>))
 import Data.Aeson (eitherDecode)
 import qualified Data.ByteString.Char8 as B
 import Data.List (nub)
+import Data.Monoid ((<>))
 import Data.Text (Text, pack, unpack)
 import Data.Text.Encoding (decodeUtf8)
 import Data.Time.Clock.POSIX (getPOSIXTime)
