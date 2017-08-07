@@ -129,7 +129,7 @@ validateClaims :: Text -> Text -> Jwt.IntDate -> Jwt.JwtClaims -> IO ()
 validateClaims issuer' clientId' now claims' = do
     iss' <- getIss claims'
     unless (iss' == issuer')
-        $ throwM $ ValidationException $ "issuer from token \"" <> iss' <> "\" different than expected issuer \"" <> issuer' <> "\""
+        $ throwM $ ValidationException $ "issuer from token \"" <> iss' <> "\" is different than expected issuer \"" <> issuer' <> "\""
 
     aud' <- getAud claims'
     unless (clientId' `elem` aud')
