@@ -60,12 +60,24 @@ library
 
 test-suite oidc-client-spec
   type:                 exitcode-stdio-1.0
-  hs-source-dirs:       test
+  hs-source-dirs:       test, src
   default-language:     Haskell2010
   ghc-options:          -Wall
   main-is:              Spec.hs
   other-modules:
       Spec.Client
+    , Spec.Client.Internal
+
+    -- NOTE: The following modules are needed for using Web.OIDC.Client.Internal.
+    , Web.OIDC.Client
+    , Web.OIDC.Client.CodeFlow
+    , Web.OIDC.Client.Discovery
+    , Web.OIDC.Client.Discovery.Issuers
+    , Web.OIDC.Client.Discovery.Provider
+    , Web.OIDC.Client.Settings
+    , Web.OIDC.Client.Internal
+    , Web.OIDC.Client.Tokens
+    , Web.OIDC.Client.Types
   build-depends:
       base
     , hspec
@@ -75,6 +87,11 @@ test-suite oidc-client-spec
     , http-types
     , http-client
     , http-client-tls
+    , aeson
+    , jose-jwt
+    , exceptions
+    , time
+    , network-uri
 
 executable scotty-example
   main-is:          Main.hs
