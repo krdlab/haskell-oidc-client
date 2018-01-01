@@ -5,8 +5,8 @@ general:
 
 dependencies:
   cache_directories:
-    - ~/.stack
-    - .stack-work
+    - "~/.stack"
+    - ".stack-work"
   pre:
     - sudo apt-get update
     - wget https://www.stackage.org/stack/linux-x86_64-static -O /tmp/stack.tar.gz    # curl -sSL https://get.haskellstack.org/ | sh
@@ -16,8 +16,8 @@ dependencies:
     - sudo chmod +x /usr/bin/stack
   override:
     - stack setup
-    - stack build
+    - stack build --pedantic
 
 test:
   override:
-    - stack test
+    - stack test --pedantic
