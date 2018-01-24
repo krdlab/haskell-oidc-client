@@ -13,7 +13,7 @@ $ cabal update
 $ cabal install oidc-client
 ```
 
-The documentation is available in [Hackage](https://hackage.haskell.org/package/oidc-client) or [this URL](http://krdlab.github.io/haskell-oidc-client/).
+The documentation is available in [Hackage](https://hackage.haskell.org/package/oidc-client).
 
 ## Run example
 
