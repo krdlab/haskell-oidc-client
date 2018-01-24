@@ -106,6 +106,7 @@ executable scotty-example
       , text
       , containers
       , transformers
+      , mtl
       , wai-extra
       , scotty
       , scotty-cookie

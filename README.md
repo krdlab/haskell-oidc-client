@@ -26,6 +26,7 @@ $ stack build --flag oidc-client:build-examples
 and then
 
 ```sh
+$ export OPENID_CLIENT_BASE_URL="http://localhost:3000"
 $ export OPENID_CLIENT_ID="Your client ID"
 $ export OPENID_CLIENT_SECRET="Your client secret"
 $ stack exec scotty-example
