@@ -92,8 +92,9 @@ run' = do
 
     post "/login" $ do
         AuthServerEnv{..} <- lift ask
-        state <- genState cprg
-        loc   <- liftIO $ O.getAuthenticationRequestUrl oidc [O.email] (Just state) []
+        state <- genBytes cprg
+        nonce <- genBytes cprg
+        loc   <- liftIO $ O.getAuthenticationRequestUrl oidc [O.email, O.profile] (Just state) [("nonce", Just nonce)]
         sid   <- genSessionId cprg
         saveState ssm sid state
         setSimpleCookie cookieName sid
@@ -133,7 +134,7 @@ run' = do
 
     gen cprg             = encode <$> atomicModifyIORef' cprg (swap . cprgGenBytes 64)
     genSessionId cprg    = liftIO $ decodeUtf8 <$> gen cprg
-    genState cprg        = liftIO $ gen cprg
+    genBytes cprg        = liftIO $ gen cprg
     saveState ssm sid st = liftIO $ atomicModifyIORef' ssm $ \m -> (M.insert sid st m, ())
     getStateBy ssm sid   = liftIO $ do
         m <- readIORef ssm
