@@ -11,6 +11,7 @@ import Control.Monad (mzero)
 import Control.Monad.Catch (MonadThrow, throwM, MonadCatch)
 import Data.Aeson (FromJSON, parseJSON, Value(..), (.:), (.:?))
 import Data.Maybe (fromJust)
+import Data.Scientific (floatingOrInteger, Scientific)
 import Data.Text (Text, unpack)
 import Data.Text.Read (decimal)
 import Jose.Jwt (Jwt, JwtClaims(..))
@@ -33,9 +34,14 @@ instance FromJSON TokensResponse where
         <$>  o .:  "access_token"
         <*>  o .:  "token_type"
         <*>  o .:  "id_token"
-        <*> (o .:? "expires_in" <|> (>>= textToInt) <$> (o .:? "expires_in"))
+        <*> (o .:? "expires_in" <|> ((>>= numberToInt) <$> (o .:? "expires_in")) <|> (>>= textToInt) <$> (o .:? "expires_in"))
         <*>  o .:? "refresh_token"
     parseJSON _          = mzero
+
+numberToInt :: Scientific -> Maybe Integer
+numberToInt s = case floatingOrInteger s of
+    Left  r -> Just $ floor (r :: Double)
+    Right i -> Just i
 
 textToInt :: Text -> Maybe Integer
 textToInt t = case decimal t of
