@@ -16,6 +16,7 @@ module Web.OIDC.Client.CodeFlow
 
 import Control.Monad (unless)
 import Control.Monad.Catch (MonadThrow, throwM, MonadCatch, catch)
+import Crypto.Random.Types (MonadRandom)
 import Data.Aeson (eitherDecode)
 import qualified Data.ByteString.Char8 as B
 import Data.List (nub)
@@ -111,7 +112,7 @@ validate oidc tres = do
         , refreshToken = I.refreshToken tres
         }
 
-validateIdToken :: OIDC -> Jwt -> IO ()
+validateIdToken :: (MonadThrow m, MonadRandom m) => OIDC -> Jwt -> m ()
 validateIdToken oidc jwt' = do
     let jwks = P.jwkSet . oidcProvider $ oidc
         token = Jwt.unJwt jwt'
@@ -125,7 +126,7 @@ getClaims jwt' = case Jwt.decodeClaims (Jwt.unJwt jwt') of
                 Right (_, c) -> return c
                 Left  cause  -> throwM $ JwtExceptoin cause
 
-validateClaims :: Text -> Text -> Jwt.IntDate -> Jwt.JwtClaims -> IO ()
+validateClaims :: MonadThrow m => Text -> Text -> Jwt.IntDate -> Jwt.JwtClaims -> m ()
 validateClaims issuer' clientId' now claims' = do
     iss' <- getIss claims'
     unless (iss' == issuer')
