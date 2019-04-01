@@ -1,5 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE RecordWildCards   #-}
 
 module Main where
 
@@ -76,7 +76,7 @@ getPort bs = fromMaybe 3000 port
         []  -> Nothing
         [_] -> Nothing
         xs  -> let p = (!! 0) . L.reverse $ xs
-                    in B.readInt p >>= return . fst
+                    in fst <$> B.readInt p
 
 run :: Int -> O.OIDC -> IORef AESRNG -> IORef SessionStateMap -> Manager -> IO ()
 run port oidc cprg ssm mgr = scottyT port runReader run'

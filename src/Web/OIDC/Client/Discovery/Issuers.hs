@@ -10,7 +10,7 @@ module Web.OIDC.Client.Discovery.Issuers
     -- TODO: other services
     ) where
 
-import Web.OIDC.Client.Types (IssuerLocation)
+import           Web.OIDC.Client.Types (IssuerLocation)
 
 google :: IssuerLocation
 google = "https://accounts.google.com"

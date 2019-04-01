@@ -1,14 +1,15 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Spec.Client where
 
-import Data.ByteString (ByteString)
-import Data.Text (unpack)
-import Data.Text.Encoding (decodeUtf8)
-import Network.HTTP.Client (newManager)
-import Network.HTTP.Client.TLS (tlsManagerSettings)
-import Network.HTTP.Types (urlEncode)
-import Test.Hspec (Spec, describe, it, shouldContain, shouldNotContain, shouldThrow)
-import Web.OIDC.Client
+import           Data.ByteString         (ByteString)
+import           Data.Text               (unpack)
+import           Data.Text.Encoding      (decodeUtf8)
+import           Network.HTTP.Client     (newManager)
+import           Network.HTTP.Client.TLS (tlsManagerSettings)
+import           Network.HTTP.Types      (urlEncode)
+import           Test.Hspec              (Spec, describe, it, shouldContain,
+                                          shouldNotContain, shouldThrow)
+import           Web.OIDC.Client
 
 clientId, clientSecret, redirectUri, nonce :: ByteString
 clientId = "dummy client id"

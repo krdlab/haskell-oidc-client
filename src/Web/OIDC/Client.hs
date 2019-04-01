@@ -22,12 +22,12 @@ module Web.OIDC.Client
     , module Jose.Jwt
     ) where
 
-import Web.OIDC.Client.CodeFlow
-import Web.OIDC.Client.Settings (OIDC, newOIDC, setCredentials)
-import Web.OIDC.Client.Discovery
-import Web.OIDC.Client.Tokens
-import Web.OIDC.Client.Types
+import           Web.OIDC.Client.CodeFlow
+import           Web.OIDC.Client.Discovery
+import           Web.OIDC.Client.Settings  (OIDC, newOIDC, setCredentials)
+import           Web.OIDC.Client.Tokens
+import           Web.OIDC.Client.Types
 
-import Jose.Jwt
+import           Jose.Jwt
 
 {-# ANN module "HLint: ignore Use import/export shortcut" #-}

@@ -1,4 +1,3 @@
-{-# LANGUAGE OverloadedStrings #-}
 {-|
     Module: Web.OIDC.Client.Tokens
     Maintainer: krdlab@gmail.com
@@ -11,22 +10,22 @@ module Web.OIDC.Client.Tokens
     , IdTokenClaims(..)
     ) where
 
-import Data.Text (Text)
-import Jose.Jwt (Jwt, IntDate)
-import Prelude hiding (exp)
+import           Data.Text (Text)
+import           Jose.Jwt  (IntDate, Jwt)
+import           Prelude   hiding (exp)
 
 data Tokens = Tokens
-    { accessToken   :: Text
-    , tokenType     :: Text
-    , idToken       :: IdToken
-    , expiresIn     :: Maybe Integer
-    , refreshToken  :: Maybe Text
+    { accessToken  :: Text
+    , tokenType    :: Text
+    , idToken      :: IdToken
+    , expiresIn    :: Maybe Integer
+    , refreshToken :: Maybe Text
     }
   deriving (Show, Eq)
 
 data IdToken = IdToken
-    { claims    :: IdTokenClaims
-    , jwt       :: Jwt
+    { claims :: IdTokenClaims
+    , jwt    :: Jwt
     }
   deriving (Show, Eq)
 

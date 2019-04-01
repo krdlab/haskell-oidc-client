@@ -1,5 +1,5 @@
-{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE OverloadedStrings  #-}
 {-|
     Module: Web.OIDC.Client.Types
     Maintainer: krdlab@gmail.com
@@ -17,12 +17,12 @@ module Web.OIDC.Client.Types
     , OpenIdException(..)
     ) where
 
-import Control.Exception (Exception)
-import Data.ByteString (ByteString)
-import Data.Text (Text)
-import Data.Typeable (Typeable)
-import Jose.Jwt (JwtError)
-import Network.HTTP.Client (HttpException)
+import           Control.Exception   (Exception)
+import           Data.ByteString     (ByteString)
+import           Data.Text           (Text)
+import           Data.Typeable       (Typeable)
+import           Jose.Jwt            (JwtError)
+import           Network.HTTP.Client (HttpException)
 
 type IssuerLocation = Text
 

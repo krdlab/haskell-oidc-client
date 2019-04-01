@@ -12,10 +12,10 @@ module Web.OIDC.Client.Settings
     , setCredentials
     ) where
 
-import Data.ByteString (ByteString)
-import Data.Text (Text)
+import           Data.ByteString                    (ByteString)
+import           Data.Text                          (Text)
 
-import Web.OIDC.Client.Discovery.Provider (Provider)
+import           Web.OIDC.Client.Discovery.Provider (Provider)
 import qualified Web.OIDC.Client.Discovery.Provider as P
 
 -- | This data type represents information needed in the OpenID flow.

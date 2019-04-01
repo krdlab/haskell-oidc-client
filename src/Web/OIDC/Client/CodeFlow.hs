@@ -14,27 +14,34 @@ module Web.OIDC.Client.CodeFlow
     , getCurrentIntDate
     ) where
 
-import Control.Monad (unless)
-import Control.Monad.Catch (MonadThrow, throwM, MonadCatch, catch)
-import Crypto.Random.Types (MonadRandom)
-import Data.Aeson (eitherDecode)
-import qualified Data.ByteString.Char8 as B
-import Data.List (nub)
-import Data.Monoid ((<>))
-import Data.Text (Text, pack, unpack)
-import Data.Text.Encoding (decodeUtf8)
-import Data.Time.Clock.POSIX (getPOSIXTime)
-import Jose.Jwt (Jwt)
-import qualified Jose.Jwt as Jwt
-import Network.HTTP.Client (getUri, setQueryString, urlEncodedBody, Request(..), Manager, httpLbs, responseBody)
-import Network.URI (URI)
+import           Control.Monad                      (unless)
+import           Control.Monad.Catch                (MonadCatch, MonadThrow,
+                                                     catch, throwM)
+import           Crypto.Random.Types                (MonadRandom)
+import           Data.Aeson                         (eitherDecode)
+import qualified Data.ByteString.Char8              as B
+import           Data.List                          (nub)
+import           Data.Monoid                        ((<>))
+import           Data.Text                          (Text, pack, unpack)
+import           Data.Text.Encoding                 (decodeUtf8)
+import           Data.Time.Clock.POSIX              (getPOSIXTime)
+import           Jose.Jwt                           (Jwt)
+import qualified Jose.Jwt                           as Jwt
+import           Network.HTTP.Client                (Manager, Request (..),
+                                                     getUri, httpLbs,
+                                                     responseBody,
+                                                     setQueryString,
+                                                     urlEncodedBody)
+import           Network.URI                        (URI)
 
-import Web.OIDC.Client.Settings (OIDC(..))
 import qualified Web.OIDC.Client.Discovery.Provider as P
-import qualified Web.OIDC.Client.Internal as I
-import Web.OIDC.Client.Internal (parseUrl)
-import Web.OIDC.Client.Tokens (Tokens(..), IdToken(..))
-import Web.OIDC.Client.Types (Scope, openId, Code, State, Parameters, OpenIdException(..))
+import           Web.OIDC.Client.Internal           (parseUrl)
+import qualified Web.OIDC.Client.Internal           as I
+import           Web.OIDC.Client.Settings           (OIDC (..))
+import           Web.OIDC.Client.Tokens             (IdToken (..), Tokens (..))
+import           Web.OIDC.Client.Types              (Code, OpenIdException (..),
+                                                     Parameters, Scope, State,
+                                                     openId)
 
 -- | Make URL for Authorization Request.
 getAuthenticationRequestUrl

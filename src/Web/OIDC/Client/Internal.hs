@@ -6,26 +6,27 @@
 -}
 module Web.OIDC.Client.Internal where
 
-import Control.Applicative ((<|>))
-import Control.Monad (mzero)
-import Control.Monad.Catch (MonadThrow, throwM, MonadCatch)
-import Data.Aeson (FromJSON, parseJSON, Value(..), (.:), (.:?))
-import Data.Maybe (fromJust)
-import Data.Scientific (floatingOrInteger, Scientific)
-import Data.Text (Text, unpack)
-import Data.Text.Read (decimal)
-import Jose.Jwt (Jwt, JwtClaims(..))
-import Network.HTTP.Client (HttpException, parseRequest, Request)
-import Prelude hiding (exp)
-import Web.OIDC.Client.Tokens (IdTokenClaims(..))
-import Web.OIDC.Client.Types (OpenIdException(InternalHttpException))
+import           Control.Applicative    ((<|>))
+import           Control.Monad          (mzero)
+import           Control.Monad.Catch    (MonadCatch, MonadThrow, throwM)
+import           Data.Aeson             (FromJSON, Value (..), parseJSON, (.:),
+                                         (.:?))
+import           Data.Maybe             (fromJust)
+import           Data.Scientific        (Scientific, floatingOrInteger)
+import           Data.Text              (Text, unpack)
+import           Data.Text.Read         (decimal)
+import           Jose.Jwt               (Jwt, JwtClaims (..))
+import           Network.HTTP.Client    (HttpException, Request, parseRequest)
+import           Prelude                hiding (exp)
+import           Web.OIDC.Client.Tokens (IdTokenClaims (..))
+import           Web.OIDC.Client.Types  (OpenIdException (InternalHttpException))
 
 data TokensResponse = TokensResponse
-    { accessToken   :: !Text
-    , tokenType     :: !Text
-    , idToken       :: !Jwt
-    , expiresIn     :: !(Maybe Integer)
-    , refreshToken  :: !(Maybe Text)
+    { accessToken  :: !Text
+    , tokenType    :: !Text
+    , idToken      :: !Jwt
+    , expiresIn    :: !(Maybe Integer)
+    , refreshToken :: !(Maybe Text)
     }
   deriving (Show, Eq)
 

@@ -1,5 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TemplateHaskell   #-}
 {-|
     Module: Web.OIDC.Client.Discovery.Provider
     Maintainer: krdlab@gmail.com
@@ -11,12 +11,13 @@ module Web.OIDC.Client.Discovery.Provider
     , Configuration(..)
     ) where
 
-import Data.Aeson.TH (deriveFromJSON, Options(..), defaultOptions)
-import Data.Aeson.Types (camelTo2)
-import Data.Text (Text)
-import Jose.Jwk (Jwk)
+import           Data.Aeson.TH         (Options (..), defaultOptions,
+                                        deriveFromJSON)
+import           Data.Aeson.Types      (camelTo2)
+import           Data.Text             (Text)
+import           Jose.Jwk              (Jwk)
 
-import Web.OIDC.Client.Types (ScopeValue, IssuerLocation)
+import           Web.OIDC.Client.Types (IssuerLocation, ScopeValue)
 
 -- | An OpenID Provider information
 data Provider = Provider { configuration :: Configuration, jwkSet :: [Jwk] }

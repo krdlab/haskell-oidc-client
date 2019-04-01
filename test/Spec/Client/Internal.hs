@@ -1,9 +1,9 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Spec.Client.Internal where
 
-import Data.Aeson (decode)
-import Jose.Jwt (Jwt(..))
-import Test.Hspec (Spec, describe, it, shouldBe)
+import           Data.Aeson               (decode)
+import           Jose.Jwt                 (Jwt (..))
+import           Test.Hspec               (Spec, describe, it, shouldBe)
 import qualified Web.OIDC.Client.Internal as I
 
 tests :: Spec
