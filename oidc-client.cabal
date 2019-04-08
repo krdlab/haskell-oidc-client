@@ -82,6 +82,7 @@ test-suite oidc-client-spec
     , Web.OIDC.Client.Types
   build-depends:
       base
+    , aeson
     , hspec
     , oidc-client
     , bytestring
@@ -106,6 +107,7 @@ executable scotty-example
     build-depends:
         base                >=4.7 && <5
       , oidc-client
+      , aeson
       , bytestring
       , text
       , containers
