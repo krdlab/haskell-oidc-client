@@ -24,7 +24,7 @@ import           Data.Aeson                         (FromJSON, eitherDecode)
 import qualified Data.ByteString.Char8              as B
 import qualified Data.ByteString.Lazy.Char8         as BL
 import           Data.List                          (nub)
-import           Data.Maybe                         (isNothing)
+import           Data.Maybe                         (isNothing, listToMaybe)
 import           Data.Monoid                        ((<>))
 import           Data.Text                          (Text, pack, unpack)
 import           Data.Text.Encoding                 (decodeUtf8)
@@ -168,7 +168,12 @@ validateIdToken :: FromJSON a => OIDC -> Jwt -> IO (IdTokenClaims a)
 validateIdToken oidc jwt' = do
     let jwks = P.jwkSet . oidcProvider $ oidc
         token = Jwt.unJwt jwt'
-    decoded <- Jwt.decode jwks Nothing token -- TODO: Nothing is maybe bad. Should get from `id_token_signing_alg_values_supported`
+        alg = fmap (Jwt.JwsEncoding . P.getJwsAlg)
+                . listToMaybe
+                . P.idTokenSigningAlgValuesSupported
+                . P.configuration
+                $ oidcProvider oidc
+    decoded <- Jwt.decode jwks alg token
     case decoded of
         Right (Unsecured payload)      -> throwM $ UnsecuredJwt payload
         Right (Jws (_header, payload)) -> parsePayload payload
