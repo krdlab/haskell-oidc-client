@@ -56,9 +56,8 @@ data AuthServerEnv = AuthServerEnv
 
 type AuthServer a = ScottyT TL.Text (ReaderT AuthServerEnv IO) a
 
-data ProfileClaims = ProfileClaims
+newtype ProfileClaims = ProfileClaims
     { email :: T.Text
-    , profile :: T.Text
     } deriving (Show, Generic)
 
 instance FromJSON ProfileClaims
@@ -106,7 +105,7 @@ run' = do
 
         sid <- genSessionId cprg
         let store = sessionStoreFromSession cprg ssm sid
-        loc <- liftIO $ O.prepareAuthenticationRequestUrl store oidc [O.email, O.profile] []
+        loc <- liftIO $ O.prepareAuthenticationRequestUrl store oidc [O.email] []
         setSimpleCookie cookieName sid
         redirect . TL.pack . show $ loc
 
