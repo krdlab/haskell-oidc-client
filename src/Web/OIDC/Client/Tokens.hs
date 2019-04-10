@@ -12,6 +12,7 @@ module Web.OIDC.Client.Tokens
     , IdTokenClaims(..)
     ) where
 
+import           Control.Applicative ((<|>))
 import           Data.Aeson         (FromJSON (parseJSON), Value (Object),
                                      withObject, (.:), (.:?))
 import           Data.ByteString    (ByteString)
@@ -49,7 +50,7 @@ instance FromJSON a => FromJSON (IdTokenClaims a) where
         IdTokenClaims
             <$> o .: "iss"
             <*> o .: "sub"
-            <*> o .: "aud"
+            <*> (o .: "aud" <|> ((:[]) <$> (o .: "aud")))
             <*> o .: "exp"
             <*> o .: "iat"
             <*> (fmap encodeUtf8 <$> o .:? "nonce")
