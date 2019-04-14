@@ -106,6 +106,7 @@ executable scotty-example
     build-depends:
         base                >=4.7 && <5
       , oidc-client
+      , aeson
       , bytestring
       , text
       , containers

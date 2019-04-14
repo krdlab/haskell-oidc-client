@@ -1,13 +1,17 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards   #-}
+{-# LANGUAGE DeriveGeneric   #-}
 
 module Main where
+
+import           GHC.Generics
 
 import           Control.Monad.IO.Class               (liftIO)
 import           Control.Monad.Reader                 (ReaderT, ask, lift,
                                                        runReaderT)
 import           Crypto.Random.AESCtr                 (AESRNG, makeSystem)
 import           Crypto.Random.API                    (cprgGenBytes)
+import           Data.Aeson                           (FromJSON)
 import           Data.ByteString                      (ByteString)
 import           Data.ByteString.Base64.URL           (encode)
 import qualified Data.ByteString.Char8                as B
@@ -131,6 +135,14 @@ run' = do
     htmlResult tokens = do
         H.h1 "Result"
         H.pre . H.toHtml . show . O.claims . O.idToken $ tokens
+        case O.decodePublicClaims (O.idToken tokens) :: Maybe User of
+          Nothing -> H.toHtml ("could not decode user info" :: T.Text)
+          Just user ->
+            H.div $ do
+              H.p $ do
+                H.toHtml ("Email: " :: T.Text)
+                H.toHtml (email user)
+              H.p $ H.img ! (A.src $ H.textValue $ picture user)
 
     gen cprg             = encode <$> atomicModifyIORef' cprg (swap . cprgGenBytes 64)
     genSessionId cprg    = liftIO $ decodeUtf8 <$> gen cprg
@@ -146,3 +158,11 @@ run' = do
     param' n = (Just <$> param n) `rescue` (\_ -> return Nothing)
     status400 m = status badRequest400   >> text m
     status401 m = status unauthorized401 >> text m
+
+data User = User {
+      name    :: T.Text
+    , email   :: T.Text
+    , picture :: T.Text
+    } deriving (Generic, Show)
+
+instance FromJSON User

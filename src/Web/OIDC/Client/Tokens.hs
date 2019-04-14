@@ -8,11 +8,15 @@ module Web.OIDC.Client.Tokens
       Tokens(..)
     , IdToken(..)
     , IdTokenClaims(..)
+    , decodePublicClaims
     ) where
 
-import           Data.Text (Text)
-import           Jose.Jwt  (IntDate, Jwt)
-import           Prelude   hiding (exp)
+import Control.Monad ((>=>))
+import Data.Aeson (FromJSON, decodeStrict')
+import Data.ByteString (ByteString)
+import Data.Text (Text)
+import Jose.Jwt (IntDate, Jwt, JwtContent)
+import Prelude hiding (exp)
 
 data Tokens = Tokens
     { accessToken  :: Text
@@ -24,10 +28,18 @@ data Tokens = Tokens
   deriving (Show, Eq)
 
 data IdToken = IdToken
-    { claims :: IdTokenClaims
-    , jwt    :: Jwt
+    { claims          :: !IdTokenClaims
+    , jwt             :: !Jwt
+    , jwtContent      :: !JwtContent
+    , rawPublicClaims :: !(Maybe ByteString)
     }
   deriving (Show, Eq)
+
+
+-- | tries to decode the 'rawPublicClaims' of a 'IdToken' into a user provided `FromJSON` instance
+decodePublicClaims :: FromJSON a => IdToken -> Maybe a
+decodePublicClaims = rawPublicClaims >=> decodeStrict'
+
 
 data IdTokenClaims = IdTokenClaims
     { iss :: Text

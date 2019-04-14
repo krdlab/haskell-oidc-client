@@ -12,6 +12,7 @@ module Web.OIDC.Client.CodeFlow
     -- * For testing
     , validateClaims
     , getCurrentIntDate
+    , decodePublicClaims
     ) where
 
 import           Control.Monad                      (unless)
@@ -25,7 +26,7 @@ import           Data.Monoid                        ((<>))
 import           Data.Text                          (Text, pack, unpack)
 import           Data.Text.Encoding                 (decodeUtf8)
 import           Data.Time.Clock.POSIX              (getPOSIXTime)
-import           Jose.Jwt                           (Jwt)
+import           Jose.Jwt                           (Jwt, JwtContent)
 import qualified Jose.Jwt                           as Jwt
 import           Network.HTTP.Client                (Manager, Request (..),
                                                      getUri, httpLbs,
@@ -38,7 +39,7 @@ import qualified Web.OIDC.Client.Discovery.Provider as P
 import           Web.OIDC.Client.Internal           (parseUrl)
 import qualified Web.OIDC.Client.Internal           as I
 import           Web.OIDC.Client.Settings           (OIDC (..))
-import           Web.OIDC.Client.Tokens             (IdToken (..), Tokens (..))
+import           Web.OIDC.Client.Tokens             (IdToken (..), Tokens (..), decodePublicClaims)
 import           Web.OIDC.Client.Types              (Code, OpenIdException (..),
                                                      Parameters, Scope, State,
                                                      openId)
@@ -103,7 +104,7 @@ requestTokens oidc code manager = do
 validate :: OIDC -> I.TokensResponse -> IO Tokens
 validate oidc tres = do
     let jwt' = I.idToken tres
-    validateIdToken oidc jwt'
+    jwtContent' <- validateIdToken oidc jwt'
     claims' <- getClaims jwt'
     now <- getCurrentIntDate
     validateClaims
@@ -111,27 +112,33 @@ validate oidc tres = do
         (decodeUtf8 . oidcClientId $ oidc)
         now
         claims'
+    let publicRaw = getRawPublicClaims jwtContent'
     return Tokens {
           accessToken  = I.accessToken tres
         , tokenType    = I.tokenType tres
-        , idToken      = IdToken { claims = I.toIdTokenClaims claims', jwt = jwt' }
+        , idToken      = IdToken { claims = I.toIdTokenClaims claims', jwt = jwt', jwtContent = jwtContent', rawPublicClaims = publicRaw }
         , expiresIn    = I.expiresIn tres
         , refreshToken = I.refreshToken tres
         }
 
-validateIdToken :: (MonadThrow m, MonadRandom m) => OIDC -> Jwt -> m ()
+validateIdToken :: (MonadThrow m, MonadRandom m) => OIDC -> Jwt -> m JwtContent
 validateIdToken oidc jwt' = do
     let jwks = P.jwkSet . oidcProvider $ oidc
         token = Jwt.unJwt jwt'
     decoded <- Jwt.decode jwks Nothing token
     case decoded of
-        Right _  -> return ()
-        Left err -> throwM $ JwtExceptoin err
+        Right content -> return content
+        Left err      -> throwM $ JwtExceptoin err
 
 getClaims :: MonadThrow m => Jwt -> m Jwt.JwtClaims
 getClaims jwt' = case Jwt.decodeClaims (Jwt.unJwt jwt') of
                 Right (_, c) -> return c
                 Left  cause  -> throwM $ JwtExceptoin cause
+
+getRawPublicClaims :: JwtContent -> Maybe B.ByteString
+getRawPublicClaims (Jwt.Unsecured _)   = Nothing
+getRawPublicClaims (Jwt.Jws (_, raw))  = Just raw
+getRawPublicClaims (Jwt.Jwe (_, raw))  = Just raw
 
 validateClaims :: MonadThrow m => Text -> Text -> Jwt.IntDate -> Jwt.JwtClaims -> m ()
 validateClaims issuer' clientId' now claims' = do
