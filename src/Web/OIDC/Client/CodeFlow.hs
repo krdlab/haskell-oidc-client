@@ -112,11 +112,10 @@ validate oidc tres = do
         (decodeUtf8 . oidcClientId $ oidc)
         now
         claims'
-    let publicRaw = getRawPublicClaims jwtContent'
     return Tokens {
           accessToken  = I.accessToken tres
         , tokenType    = I.tokenType tres
-        , idToken      = IdToken { claims = I.toIdTokenClaims claims', jwt = jwt', jwtContent = jwtContent', rawPublicClaims = publicRaw }
+        , idToken      = IdToken { claims = I.toIdTokenClaims claims', jwt = jwt', jwtContent = jwtContent' }
         , expiresIn    = I.expiresIn tres
         , refreshToken = I.refreshToken tres
         }
@@ -134,11 +133,6 @@ getClaims :: MonadThrow m => Jwt -> m Jwt.JwtClaims
 getClaims jwt' = case Jwt.decodeClaims (Jwt.unJwt jwt') of
                 Right (_, c) -> return c
                 Left  cause  -> throwM $ JwtExceptoin cause
-
-getRawPublicClaims :: JwtContent -> Maybe B.ByteString
-getRawPublicClaims (Jwt.Unsecured _)   = Nothing
-getRawPublicClaims (Jwt.Jws (_, raw))  = Just raw
-getRawPublicClaims (Jwt.Jwe (_, raw))  = Just raw
 
 validateClaims :: MonadThrow m => Text -> Text -> Jwt.IntDate -> Jwt.JwtClaims -> m ()
 validateClaims issuer' clientId' now claims' = do

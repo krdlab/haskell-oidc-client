@@ -9,6 +9,7 @@ module Web.OIDC.Client.Tokens
     , IdToken(..)
     , IdTokenClaims(..)
     , decodePublicClaims
+    , rawPublicClaims
     ) where
 
 import Control.Monad ((>=>))
@@ -16,6 +17,7 @@ import Data.Aeson (FromJSON, decodeStrict')
 import Data.ByteString (ByteString)
 import Data.Text (Text)
 import Jose.Jwt (IntDate, Jwt, JwtContent)
+import Jose.Jwt as Jwt
 import Prelude hiding (exp)
 
 data Tokens = Tokens
@@ -28,10 +30,9 @@ data Tokens = Tokens
   deriving (Show, Eq)
 
 data IdToken = IdToken
-    { claims          :: !IdTokenClaims
+    { claims          :: IdTokenClaims
     , jwt             :: !Jwt
     , jwtContent      :: !JwtContent
-    , rawPublicClaims :: !(Maybe ByteString)
     }
   deriving (Show, Eq)
 
@@ -39,6 +40,15 @@ data IdToken = IdToken
 -- | tries to decode the 'rawPublicClaims' of a 'IdToken' into a user provided `FromJSON` instance
 decodePublicClaims :: FromJSON a => IdToken -> Maybe a
 decodePublicClaims = rawPublicClaims >=> decodeStrict'
+
+
+-- | returns the 'ByteString' with the payload in case of an signed or encrypted JWT
+-- | 'Nothing' in case of an unsecured JWT
+rawPublicClaims :: IdToken -> Maybe ByteString
+rawPublicClaims = go . jwtContent
+  where go (Jwt.Unsecured _)   = Nothing
+        go (Jwt.Jws (_, raw))  = Just raw
+        go (Jwt.Jwe (_, raw))  = Just raw
 
 
 data IdTokenClaims = IdTokenClaims
