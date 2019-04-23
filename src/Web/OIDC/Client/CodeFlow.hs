@@ -7,26 +7,29 @@
 module Web.OIDC.Client.CodeFlow
     (
       getAuthenticationRequestUrl
+    , getValidTokens
+    , prepareAuthenticationRequestUrl
     , requestTokens
 
     -- * For testing
     , validateClaims
     , getCurrentIntDate
-    , decodePublicClaims
     ) where
 
-import           Control.Monad                      (unless)
+import           Control.Monad                      (unless, when)
 import           Control.Monad.Catch                (MonadCatch, MonadThrow,
                                                      catch, throwM)
-import           Crypto.Random.Types                (MonadRandom)
-import           Data.Aeson                         (eitherDecode)
+import           Control.Monad.IO.Class             (MonadIO, liftIO)
+import           Data.Aeson                         (FromJSON, eitherDecode)
 import qualified Data.ByteString.Char8              as B
+import qualified Data.ByteString.Lazy.Char8         as BL
 import           Data.List                          (nub)
+import           Data.Maybe                         (isNothing, listToMaybe)
 import           Data.Monoid                        ((<>))
 import           Data.Text                          (Text, pack, unpack)
 import           Data.Text.Encoding                 (decodeUtf8)
 import           Data.Time.Clock.POSIX              (getPOSIXTime)
-import           Jose.Jwt                           (Jwt, JwtContent)
+import           Jose.Jwt                           (Jwt, JwtContent (Jwe, Jws, Unsecured))
 import qualified Jose.Jwt                           as Jwt
 import           Network.HTTP.Client                (Manager, Request (..),
                                                      getUri, httpLbs,
@@ -35,16 +38,56 @@ import           Network.HTTP.Client                (Manager, Request (..),
                                                      urlEncodedBody)
 import           Network.URI                        (URI)
 
+import           Prelude                            hiding (exp)
+
 import qualified Web.OIDC.Client.Discovery.Provider as P
 import           Web.OIDC.Client.Internal           (parseUrl)
 import qualified Web.OIDC.Client.Internal           as I
 import           Web.OIDC.Client.Settings           (OIDC (..))
-import           Web.OIDC.Client.Tokens             (IdToken (..), Tokens (..), decodePublicClaims)
-import           Web.OIDC.Client.Types              (Code, OpenIdException (..),
-                                                     Parameters, Scope, State,
+import           Web.OIDC.Client.Tokens             (IdTokenClaims (..),
+                                                     Tokens (..))
+import           Web.OIDC.Client.Types              (Code, Nonce,
+                                                     OpenIdException (..),
+                                                     Parameters, Scope,
+                                                     SessionStore (..), State,
                                                      openId)
 
+-- | Make URL for Authorization Request after generating state and nonce from 'SessionStore'.
+prepareAuthenticationRequestUrl
+    :: (MonadThrow m, MonadCatch m)
+    => SessionStore m
+    -> OIDC
+    -> Scope            -- ^ used to specify what are privileges requested for tokens. (use `ScopeValue`)
+    -> Parameters       -- ^ Optional parameters
+    -> m URI
+prepareAuthenticationRequestUrl store oidc scope params = do
+    state <- sessionStoreGenerate store
+    nonce' <- sessionStoreGenerate store
+    sessionStoreSave store state nonce'
+    getAuthenticationRequestUrl oidc scope (Just state) $ params ++ [("nonce", Just nonce')]
+
+-- | Get and validate access token and with code and state stored in the 'SessionStore'.
+--   Then deletes session info by 'sessionStoreDelete'.
+getValidTokens
+    :: (MonadThrow m, MonadCatch m, MonadIO m, FromJSON a)
+    => SessionStore m
+    -> OIDC
+    -> Manager
+    -> State
+    -> Code
+    -> m (Tokens a)
+getValidTokens store oidc mgr stateFromIdP code = do
+    (state, savedNonce) <- sessionStoreGet store
+    if state == Just stateFromIdP
+      then do
+          when (isNothing savedNonce) $ throwM $ ValidationException "Nonce is not saved!"
+          result <- liftIO $ requestTokens oidc savedNonce code mgr
+          sessionStoreDelete store
+          return result
+      else throwM $ ValidationException $ "Incosistent state: " <> decodeUtf8 stateFromIdP
+
 -- | Make URL for Authorization Request.
+{-# WARNING getAuthenticationRequestUrl "This function doesn't manage state and nonce. Use prepareAuthenticationRequestUrl only unless your IdP doesn't support state and/or nonce." #-}
 getAuthenticationRequestUrl
     :: (MonadThrow m, MonadCatch m)
     => OIDC
@@ -77,12 +120,13 @@ getAuthenticationRequestUrl oidc scope state params = do
 -- Returned `Tokens` value is a valid.
 --
 -- If a HTTP error has occurred or a tokens validation has failed, this function throws `OpenIdException`.
-requestTokens :: OIDC -> Code -> Manager -> IO Tokens
-requestTokens oidc code manager = do
+{-# WARNING requestTokens "This function doesn't manage state and nonce. Use getValidTokens only unless your IdP doesn't support state and/or nonce." #-}
+requestTokens :: FromJSON a => OIDC -> Maybe Nonce -> Code -> Manager -> IO (Tokens a)
+requestTokens oidc savedNonce code manager = do
     json <- getTokensJson `catch` I.rethrow
     case eitherDecode json of
-        Right ts -> validate oidc ts
-        Left err -> error $ "failed to decode tokens json: " ++ err     -- TODO: Exception
+        Right ts -> validate oidc savedNonce ts
+        Left err -> throwM . JsonException $ pack err
   where
     getTokensJson = do
         req <- parseUrl endpoint
@@ -101,59 +145,62 @@ requestTokens oidc code manager = do
         , ("redirect_uri",  redirect)
         ]
 
-validate :: OIDC -> I.TokensResponse -> IO Tokens
-validate oidc tres = do
+validate :: FromJSON a => OIDC -> Maybe Nonce -> I.TokensResponse -> IO (Tokens a)
+validate oidc savedNonce tres = do
     let jwt' = I.idToken tres
-    jwtContent' <- validateIdToken oidc jwt'
-    claims' <- getClaims jwt'
+    claims' <- validateIdToken oidc jwt'
     now <- getCurrentIntDate
     validateClaims
         (P.issuer . P.configuration . oidcProvider $ oidc)
         (decodeUtf8 . oidcClientId $ oidc)
         now
+        savedNonce
         claims'
     return Tokens {
           accessToken  = I.accessToken tres
         , tokenType    = I.tokenType tres
-        , idToken      = IdToken { claims = I.toIdTokenClaims claims', jwt = jwt', jwtContent = jwtContent' }
+        , idToken      = claims'
         , expiresIn    = I.expiresIn tres
         , refreshToken = I.refreshToken tres
         }
 
-validateIdToken :: (MonadThrow m, MonadRandom m) => OIDC -> Jwt -> m JwtContent
+validateIdToken :: FromJSON a => OIDC -> Jwt -> IO (IdTokenClaims a)
 validateIdToken oidc jwt' = do
     let jwks = P.jwkSet . oidcProvider $ oidc
         token = Jwt.unJwt jwt'
-    decoded <- Jwt.decode jwks Nothing token
+        alg = fmap (Jwt.JwsEncoding . P.getJwsAlg)
+                . listToMaybe
+                . P.idTokenSigningAlgValuesSupported
+                . P.configuration
+                $ oidcProvider oidc
+    decoded <- Jwt.decode jwks alg token
     case decoded of
-        Right content -> return content
-        Left err      -> throwM $ JwtExceptoin err
+        Right (Unsecured payload)      -> throwM $ UnsecuredJwt payload
+        Right (Jws (_header, payload)) -> parsePayload payload
+        Right (Jwe (_header, payload)) -> parsePayload payload
+        Left err                       -> throwM $ JwtExceptoin err
 
-getClaims :: MonadThrow m => Jwt -> m Jwt.JwtClaims
-getClaims jwt' = case Jwt.decodeClaims (Jwt.unJwt jwt') of
-                Right (_, c) -> return c
-                Left  cause  -> throwM $ JwtExceptoin cause
+  where
+    parsePayload payload =
+        case eitherDecode $ BL.fromStrict payload of
+            Right x  -> return x
+            Left err -> throwM . JsonException $ pack err
 
-validateClaims :: MonadThrow m => Text -> Text -> Jwt.IntDate -> Jwt.JwtClaims -> m ()
-validateClaims issuer' clientId' now claims' = do
-    iss' <- getIss claims'
+validateClaims :: Text -> Text -> Jwt.IntDate -> Maybe Nonce -> IdTokenClaims a -> IO ()
+validateClaims issuer' clientId' now savedNonce claims' = do
+    let iss' = iss claims'
     unless (iss' == issuer')
         $ throwM $ ValidationException $ "issuer from token \"" <> iss' <> "\" is different than expected issuer \"" <> issuer' <> "\""
 
-    aud' <- getAud claims'
+    let aud' = aud claims'
     unless (clientId' `elem` aud')
         $ throwM $ ValidationException $ "our client \"" <> clientId' <> "\" isn't contained in the token's audience " <> (pack . show) aud'
 
-    exp' <- getExp claims'
-    unless (now < exp')
+    unless (now < exp claims')
         $ throwM $ ValidationException "received token has expired"
-  where
-    getIss c = get Jwt.jwtIss c "'iss' claim was not found"
-    getAud c = get Jwt.jwtAud c "'aud' claim was not found"
-    getExp c = get Jwt.jwtExp c "'exp' claim was not found"
-    get f v msg = case f v of
-        Just v' -> return v'
-        Nothing -> throwM $ ValidationException msg
+
+    unless (nonce claims' == savedNonce)
+        $ throwM $ ValidationException "Inconsistent nonce"
 
 getCurrentIntDate :: IO Jwt.IntDate
 getCurrentIntDate = Jwt.IntDate <$> getPOSIXTime

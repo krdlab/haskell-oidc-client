@@ -1,3 +1,4 @@
+{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards   #-}
 {-# LANGUAGE DeriveGeneric   #-}
@@ -27,12 +28,14 @@ import           Data.Text                            as T
 import           Data.Text.Encoding                   (decodeUtf8)
 import           Data.Text.Lazy                       as TL
 import           Data.Tuple                           (swap)
+import           GHC.Generics (Generic)
 import           Network.HTTP.Client                  (Manager, newManager)
 import           Network.HTTP.Client.TLS              (tlsManagerSettings)
 import           Network.HTTP.Types                   (badRequest400,
                                                        unauthorized401)
 import           Network.Wai.Middleware.RequestLogger (logStdoutDev)
 import           System.Environment                   (getEnv)
+import           Text.Blaze.Html                      (Html)
 import           Text.Blaze.Html.Renderer.Text        (renderHtml)
 import           Text.Blaze.Html5                     ((!))
 import qualified Text.Blaze.Html5                     as H
@@ -45,7 +48,7 @@ import           Web.Scotty.Trans                     (ScottyT, get, html,
                                                        redirect, rescue,
                                                        scottyT, status, text)
 
-type SessionStateMap = Map T.Text O.State
+type SessionStateMap = Map T.Text (O.State, O.Nonce)
 
 data AuthServerEnv = AuthServerEnv
     { oidc :: O.OIDC
@@ -55,6 +58,14 @@ data AuthServerEnv = AuthServerEnv
     }
 
 type AuthServer a = ScottyT TL.Text (ReaderT AuthServerEnv IO) a
+
+newtype ProfileClaims = ProfileClaims
+    { name    :: T.Text
+    , email   :: T.Text
+    , picture :: T.Text
+    } deriving (Show, Generic)
+
+instance FromJSON ProfileClaims
 
 main :: IO ()
 main = do
@@ -96,11 +107,10 @@ run' = do
 
     post "/login" $ do
         AuthServerEnv{..} <- lift ask
-        state <- genBytes cprg
-        nonce <- genBytes cprg
-        loc   <- liftIO $ O.getAuthenticationRequestUrl oidc [O.email, O.profile] (Just state) [("nonce", Just nonce)]
-        sid   <- genSessionId cprg
-        saveState ssm sid state
+
+        sid <- genSessionId cprg
+        let store = sessionStoreFromSession cprg ssm sid
+        loc <- liftIO $ O.prepareAuthenticationRequestUrl store oidc [O.email] []
         setSimpleCookie cookieName sid
         redirect . TL.pack . show $ loc
 
@@ -122,47 +132,44 @@ run' = do
         case cookie of
             Just sid -> do
                 AuthServerEnv{..} <- lift ask
+                let store = sessionStoreFromSession cprg ssm sid
                 state <- param "state"
-                sst   <- getStateBy ssm sid
-                if state == sst
-                    then do
-                        code   <- param "code"
-                        tokens <- liftIO $ O.requestTokens oidc code mgr
-                        blaze $ htmlResult tokens
-                    else status400 "state not match"
+                code  <- param "code"
+                tokens <- liftIO $ O.getValidTokens store oidc mgr state code
+                blaze $ htmlResult tokens
             Nothing  -> status400 "cookie not found"
 
+    htmlResult :: O.Tokens ProfileClaims -> Html
     htmlResult tokens = do
         H.h1 "Result"
-        H.pre . H.toHtml . show . O.claims . O.idToken $ tokens
-        case O.decodePublicClaims (O.idToken tokens) :: Maybe User of
-          Nothing -> H.toHtml ("could not decode user info" :: T.Text)
-          Just user ->
-            H.div $ do
-              H.p $ do
-                H.toHtml ("Email: " :: T.Text)
-                H.toHtml (email user)
-              H.p $ H.img ! (A.src $ H.textValue $ picture user)
+        H.pre . H.toHtml . show $ tokens
+        let profile = otherClaims tokens
+        H.div $ do
+          H.p $ do
+            H.toHtml ("Email: " :: T.Text)
+            H.toHtml (email profile)
+          H.p $ H.img ! (A.src $ H.textValue $ picture profile)
 
-    gen cprg             = encode <$> atomicModifyIORef' cprg (swap . cprgGenBytes 64)
-    genSessionId cprg    = liftIO $ decodeUtf8 <$> gen cprg
-    genBytes cprg        = liftIO $ gen cprg
-    saveState ssm sid st = liftIO $ atomicModifyIORef' ssm $ \m -> (M.insert sid st m, ())
-    getStateBy ssm sid   = liftIO $ do
-        m <- readIORef ssm
-        case M.lookup sid m of
-            Just st -> return st
-            Nothing -> return ""
+    gen cprg                   = encode <$> atomicModifyIORef' cprg (swap . cprgGenBytes 64)
+    genSessionId cprg          = liftIO $ decodeUtf8 <$> gen cprg
+    genBytes cprg              = liftIO $ gen cprg
+    saveState ssm sid st nonce = liftIO $ atomicModifyIORef' ssm $ \m -> (M.insert sid (st, nonce) m, ())
+    getStateBy ssm sid         = liftIO $ do
+        m <- M.lookup sid <$> readIORef ssm
+        return $ case m of
+            Just (st, nonce) -> (Just st, Just nonce)
+            _                -> (Nothing, Nothing)
+    deleteState ssm sid  = liftIO $ atomicModifyIORef' ssm $ \m -> (M.delete sid m, ())
+
+    sessionStoreFromSession cprg ssm sid =
+        O.SessionStore
+            { sessionStoreGenerate = genBytes cprg
+            , sessionStoreSave     = saveState ssm sid
+            , sessionStoreGet      = getStateBy ssm sid
+            , sessionStoreDelete   = deleteState ssm sid
+            }
 
     blaze = html . renderHtml
     param' n = (Just <$> param n) `rescue` (\_ -> return Nothing)
     status400 m = status badRequest400   >> text m
     status401 m = status unauthorized401 >> text m
-
-data User = User {
-      name    :: T.Text
-    , email   :: T.Text
-    , picture :: T.Text
-    } deriving (Generic, Show)
-
-instance FromJSON User

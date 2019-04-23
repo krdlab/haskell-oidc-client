@@ -1,3 +1,6 @@
+{-# LANGUAGE DeriveGeneric     #-}
+{-# LANGUAGE OverloadedStrings #-}
+
 {-|
     Module: Web.OIDC.Client.Tokens
     Maintainer: krdlab@gmail.com
@@ -6,57 +9,49 @@
 module Web.OIDC.Client.Tokens
     (
       Tokens(..)
-    , IdToken(..)
     , IdTokenClaims(..)
-    , decodePublicClaims
-    , rawPublicClaims
     ) where
 
-import Control.Monad ((>=>))
-import Data.Aeson (FromJSON, decodeStrict')
-import Data.ByteString (ByteString)
-import Data.Text (Text)
-import Jose.Jwt (IntDate, Jwt, JwtContent)
-import Jose.Jwt as Jwt
-import Prelude hiding (exp)
+import           Control.Applicative ((<|>))
+import           Data.Aeson         (FromJSON (parseJSON), Value (Object),
+                                     withObject, (.:), (.:?))
+import           Data.ByteString    (ByteString)
+import           Data.Text          (Text)
+import           Data.Text.Encoding (encodeUtf8)
+import           GHC.Generics       (Generic)
+import           Jose.Jwt           (IntDate)
+import           Prelude            hiding (exp)
 
-data Tokens = Tokens
+data Tokens a = Tokens
     { accessToken  :: Text
     , tokenType    :: Text
-    , idToken      :: IdToken
+    , idToken      :: IdTokenClaims a
     , expiresIn    :: Maybe Integer
     , refreshToken :: Maybe Text
     }
   deriving (Show, Eq)
 
-data IdToken = IdToken
-    { claims          :: IdTokenClaims
-    , jwt             :: !Jwt
-    , jwtContent      :: !JwtContent
+-- | Claims required for an <https://openid.net/specs/openid-connect-core-1_0.html#IDToken ID Token>,
+--   plus recommended claims (nonce) and other custom claims.
+data IdTokenClaims a = IdTokenClaims
+    { iss         :: !Text
+    , sub         :: !Text
+    , aud         :: ![Text]
+    , exp         :: !IntDate
+    , iat         :: !IntDate
+    , nonce       :: !(Maybe ByteString)
+    , otherClaims :: !a
     }
-  deriving (Show, Eq)
+  deriving (Show, Eq, Generic)
 
 
--- | tries to decode the 'rawPublicClaims' of a 'IdToken' into a user provided `FromJSON` instance
-decodePublicClaims :: FromJSON a => IdToken -> Maybe a
-decodePublicClaims = rawPublicClaims >=> decodeStrict'
-
-
--- | returns the 'ByteString' with the payload in case of an signed or encrypted JWT
--- | 'Nothing' in case of an unsecured JWT
-rawPublicClaims :: IdToken -> Maybe ByteString
-rawPublicClaims = go . jwtContent
-  where go (Jwt.Unsecured _)   = Nothing
-        go (Jwt.Jws (_, raw))  = Just raw
-        go (Jwt.Jwe (_, raw))  = Just raw
-
-
-data IdTokenClaims = IdTokenClaims
-    { iss :: Text
-    , sub :: Text
-    , aud :: [Text]
-    , exp :: IntDate
-    , iat :: IntDate
-    -- TODO: optional
-    }
-  deriving (Show, Eq)
+instance FromJSON a => FromJSON (IdTokenClaims a) where
+    parseJSON = withObject "IdTokenClaims" $ \o ->
+        IdTokenClaims
+            <$> o .: "iss"
+            <*> o .: "sub"
+            <*> (o .: "aud" <|> ((:[]) <$> (o .: "aud")))
+            <*> o .: "exp"
+            <*> o .: "iat"
+            <*> (fmap encodeUtf8 <$> o .:? "nonce")
+            <*> parseJSON (Object o)
