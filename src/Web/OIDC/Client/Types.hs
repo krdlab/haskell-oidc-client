@@ -11,10 +11,12 @@ module Web.OIDC.Client.Types
     , openId, profile, email, address, phone, offlineAccess
     , Scope
     , State
+    , Nonce
     , Parameters
     , Code
     , IssuerLocation
     , OpenIdException(..)
+    , SessionStore (..)
     ) where
 
 import           Control.Exception   (Exception)
@@ -40,6 +42,8 @@ type Scope = [ScopeValue]
 
 type State = ByteString
 
+type Nonce = ByteString
+
 type Parameters = [(ByteString, Maybe ByteString)]
 
 type Code = ByteString
@@ -47,8 +51,21 @@ type Code = ByteString
 data OpenIdException =
       DiscoveryException Text
     | InternalHttpException HttpException
+    | JsonException Text
+    | UnsecuredJwt ByteString
     | JwtExceptoin JwtError
     | ValidationException Text
   deriving (Show, Typeable)
 
 instance Exception OpenIdException
+
+-- | Manages state and nonce.
+--   (Maybe 'OIDC' should have them)
+data SessionStore m = SessionStore
+    { sessionStoreGenerate :: m ByteString
+    -- ^ Generate state and nonce at random
+    , sessionStoreSave :: State -> Nonce -> m ()
+    , sessionStoreGet :: m (Maybe State, Maybe Nonce)
+    , sessionStoreDelete :: m ()
+    -- ^ Should delete at least nonce
+    }

@@ -1,6 +1,8 @@
+{-# OPTIONS_GHC -Wno-warnings-deprecations #-}
 {-# LANGUAGE OverloadedStrings #-}
 module Spec.Client where
 
+import           Data.Aeson              (Value (Null))
 import           Data.ByteString         (ByteString)
 import           Data.Text               (unpack)
 import           Data.Text.Encoding      (decodeUtf8)
@@ -11,11 +13,13 @@ import           Test.Hspec              (Spec, describe, it, shouldContain,
                                           shouldNotContain, shouldThrow)
 import           Web.OIDC.Client
 
-clientId, clientSecret, redirectUri, nonce :: ByteString
+import           Prelude                 hiding (exp)
+
+clientId, clientSecret, redirectUri, nonce' :: ByteString
 clientId = "dummy client id"
 clientSecret = "dummy client secret"
 redirectUri = "http://localhost"
-nonce = "dummy nonce"
+nonce' = "dummy nonce"
 
 tests :: Spec
 tests = do
@@ -37,66 +41,62 @@ tests = do
             provider <- discover google manager
             let oidc = setCredentials clientId clientSecret redirectUri $ newOIDC provider
                 state = "dummy state"
-            url <- getAuthenticationRequestUrl oidc [email] (Just state) [("nonce", Just nonce)]
+            url <- getAuthenticationRequestUrl oidc [email] (Just state) [("nonce", Just nonce')]
             show url `shouldContain` (toES "scope" ++ "=" ++ toES "openid email")
             show url `shouldContain` (toES "state" ++ "=" ++ toES state)
-            show url `shouldContain` (toES "nonce" ++ "=" ++ toES nonce)
+            show url `shouldContain` (toES "nonce" ++ "=" ++ toES nonce')
 
     describe "CodeFlow.validateClaims" $ do
+        let issuer' = "http://localhost"
+            clientId' = decodeUtf8 clientId
+            createValidClaims now =
+                IdTokenClaims
+                    { iss = issuer'
+                    , sub = "sub"
+                    , aud = [clientId']
+                    , exp = add 10 now
+                    , iat = now
+                    , nonce = Just nonce'
+                    , otherClaims = Null
+                    }
         it "should succeed at a validation of correct claims" $ do
-            let issuer' = "http://localhost"
-                clientId' = decodeUtf8 clientId
             now <- getCurrentIntDate
-            let claims' = defClaims { jwtIss = Just issuer'
-                                    , jwtAud = Just [clientId']
-                                    , jwtExp = Just (add 10 now)
-                                    }
-            validateClaims issuer' clientId' now claims'
-            validateClaims issuer' clientId' now (claims' { jwtAud = Just ["other id", clientId'] })
+            let claims' = createValidClaims now
+            validateClaims issuer' clientId' now (Just nonce') claims'
+            validateClaims issuer' clientId' now (Just nonce') claims' { aud = ["other id", clientId'] }
 
         it "should throw ValidationException if 'iss' field is invalid" $ do
-            let issuer' = "http://localhost"
-                clientId' = decodeUtf8 clientId
             now <- getCurrentIntDate
-            let claims' = defClaims { jwtIss = Just "http://localhost/hoge"
-                                    , jwtAud = Just [clientId']
-                                    , jwtExp = Just (add 10 now)
-                                    }
-            validateClaims issuer' clientId' now claims'
+            let claims' = createValidClaims now
+            validateClaims issuer' clientId' now (Just nonce') claims' { iss = "http://localhost/hoge" }
                 `shouldThrow` isValidationException
 
         it "should throw ValidationException if 'aud' field does not contain Client ID" $ do
-            let issuer' = "http://localhost"
-                clientId' = decodeUtf8 clientId
             now <- getCurrentIntDate
-            let claims' = defClaims { jwtIss = Just issuer'
-                                    , jwtAud = Just ["other id"]
-                                    , jwtExp = Just (add 10 now)
-                                    }
-            validateClaims issuer' clientId' now claims'
+            let claims' = createValidClaims now
+            validateClaims issuer' clientId' now (Just nonce') claims' { aud = ["other id"] }
                 `shouldThrow` isValidationException
 
         it "should throw ValidationException if 'exp' field expired" $ do
-            let issuer' = "http://localhost"
-                clientId' = decodeUtf8 clientId
             now <- getCurrentIntDate
-            let claims' = defClaims { jwtIss = Just issuer'
-                                    , jwtAud = Just [clientId']
-                                    , jwtExp = Just (add (-1) now)
-                                    }
-            validateClaims issuer' clientId' now claims'
+            let claims' = createValidClaims now
+            validateClaims issuer' clientId' now (Just nonce') claims' { exp = add (-1) now }
+                `shouldThrow` isValidationException
+
+        it "should throw ValidationException if 'nonce' is not given" $ do
+            now <- getCurrentIntDate
+            let claims' = createValidClaims now
+            validateClaims issuer' clientId' now (Just nonce') claims' { nonce = Nothing }
+                `shouldThrow` isValidationException
+
+        it "should throw ValidationException if 'nonce' is invalid" $ do
+            now <- getCurrentIntDate
+            let claims' = createValidClaims now
+            validateClaims issuer' clientId' now (Just nonce') claims' { nonce = Just "other nonce" }
                 `shouldThrow` isValidationException
 
   where
     toES = unpack . decodeUtf8 . urlEncode True
-    defClaims = JwtClaims { jwtIss = Nothing
-                          , jwtSub = Nothing
-                          , jwtAud = Nothing
-                          , jwtExp = Nothing
-                          , jwtNbf = Nothing
-                          , jwtIat = Nothing
-                          , jwtJti = Nothing
-                          }
     add sec (IntDate t) = IntDate $ t + sec
     isValidationException e = case e of
         (ValidationException _) -> True
