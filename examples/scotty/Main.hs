@@ -1,6 +1,7 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards   #-}
+{-# LANGUAGE DeriveGeneric   #-}
 
 module Main where
 
@@ -9,7 +10,7 @@ import           Control.Monad.Reader                 (ReaderT, ask, lift,
                                                        runReaderT)
 import           Crypto.Random.AESCtr                 (AESRNG, makeSystem)
 import           Crypto.Random.API                    (cprgGenBytes)
-import           Data.Aeson (FromJSON)
+import           Data.Aeson                           (FromJSON)
 import           Data.ByteString                      (ByteString)
 import           Data.ByteString.Base64.URL           (encode)
 import qualified Data.ByteString.Char8                as B
@@ -56,8 +57,10 @@ data AuthServerEnv = AuthServerEnv
 
 type AuthServer a = ScottyT TL.Text (ReaderT AuthServerEnv IO) a
 
-newtype ProfileClaims = ProfileClaims
-    { email :: T.Text
+data ProfileClaims = ProfileClaims
+    { name    :: T.Text
+    , email   :: T.Text
+    , picture :: T.Text
     } deriving (Show, Generic)
 
 instance FromJSON ProfileClaims
@@ -105,7 +108,7 @@ run' = do
 
         sid <- genSessionId cprg
         let store = sessionStoreFromSession cprg ssm sid
-        loc <- liftIO $ O.prepareAuthenticationRequestUrl store oidc [O.email] []
+        loc <- liftIO $ O.prepareAuthenticationRequestUrl store oidc [O.email, O.profile] []
         setSimpleCookie cookieName sid
         redirect . TL.pack . show $ loc
 
@@ -138,6 +141,16 @@ run' = do
     htmlResult tokens = do
         H.h1 "Result"
         H.pre . H.toHtml . show $ tokens
+        let profile = O.otherClaims $ O.idToken tokens
+        H.div $ do
+          H.p $ do
+            H.toHtml ("Name: " :: T.Text)
+            H.toHtml (name profile)
+          H.p $ do
+            H.toHtml ("Email: " :: T.Text)
+            H.toHtml (email profile)
+          H.p $ H.img ! (A.src $ H.textValue $ picture profile)
+
     gen cprg                   = encode <$> atomicModifyIORef' cprg (swap . cprgGenBytes 64)
     genSessionId cprg          = liftIO $ decodeUtf8 <$> gen cprg
     genBytes cprg              = liftIO $ gen cprg
