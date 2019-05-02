@@ -13,6 +13,7 @@ Nothing yet.
 
 ### Changed
 - Made `TokenResponse` parsing strict. See [#23](https://github.com/krdlab/haskell-oidc-client/pull/23).
+- A signing algorithm is now obtained from OpenID Provider Metadata. See [#24](https://github.com/krdlab/haskell-oidc-client/pull/24).
 - 'profile' scope added to 'examples/scotty', and name / email / picture shown. See [#25](https://github.com/krdlab/haskell-oidc-client/pull/25).
 
 ## [0.3.0.1]
