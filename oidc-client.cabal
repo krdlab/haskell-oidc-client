@@ -16,6 +16,7 @@ description:
     .
     Examples: <https://github.com/krdlab/haskell-oidc-client/tree/master/examples>
 extra-source-files: CHANGELOG.md
+                  , README.md
 
 source-repository head
     type: git
