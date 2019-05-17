@@ -175,10 +175,11 @@ validateIdToken oidc jwt' = do
                 $ oidcProvider oidc
     decoded <-
         (\x -> case partitionEithers x of
-            (_    , k : _) -> pure . Right $ k
-            (e : _, _    ) -> pure . Left $ e
+            (_    , k : _) -> Right k
+            (e : _, _    ) -> Left e
+            ([]   , []   ) -> Left $ Jwt.KeyError "No Keys available for decoding" 
         )
-        =<< traverse (\alg' -> Jwt.decode jwks (Just alg') token) alg
+        <$> traverse (\alg' -> Jwt.decode jwks (Just alg') token) alg
     case decoded of
         Right (Unsecured payload)      -> throwM $ UnsecuredJwt payload
         Right (Jws (_header, payload)) -> parsePayload payload
