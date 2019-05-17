@@ -7,24 +7,20 @@
     Stability: experimental
 -}
 module Web.OIDC.Client.Tokens
-  ( Tokens(..)
-  , IdTokenClaims(..)
-  )
-where
+    (
+      Tokens(..)
+    , IdTokenClaims(..)
+    ) where
 
-import           Control.Applicative            ( (<|>) )
-import           Data.Aeson                     ( FromJSON(parseJSON)
-                                                , Value(Object)
-                                                , withObject
-                                                , (.:)
-                                                , (.:?)
-                                                )
-import           Data.ByteString                ( ByteString )
-import           Data.Text                      ( Text )
-import           Data.Text.Encoding             ( encodeUtf8 )
-import           GHC.Generics                   ( Generic )
-import           Jose.Jwt                       ( IntDate )
-import           Prelude                 hiding ( exp )
+import           Control.Applicative ((<|>))
+import           Data.Aeson         (FromJSON (parseJSON), Value (Object),
+                                     withObject, (.:), (.:?))
+import           Data.ByteString    (ByteString)
+import           Data.Text          (Text)
+import           Data.Text.Encoding (encodeUtf8)
+import           GHC.Generics       (Generic)
+import           Jose.Jwt           (IntDate)
+import           Prelude            hiding (exp)
 
 data Tokens a = Tokens
     { accessToken  :: Text

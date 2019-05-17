@@ -7,30 +7,21 @@
     Stability: experimental
 -}
 module Web.OIDC.Client.Discovery.Provider
-  ( Provider(..)
-  , Configuration(..)
-  , JwsAlgJson(..)
-  )
-where
+    (
+      Provider(..)
+    , Configuration(..)
+    , JwsAlgJson(..)
+    ) where
 
-import           Data.Aeson                     ( FromJSON
-                                                , parseJSON
-                                                , withText
-                                                )
-import           Data.Aeson.TH                  ( Options(..)
-                                                , defaultOptions
-                                                , deriveFromJSON
-                                                )
-import           Data.Aeson.Types               ( camelTo2 )
-import           Data.Text                      ( Text
-                                                , unpack
-                                                )
-import           Jose.Jwa                       ( JwsAlg(..) )
-import           Jose.Jwk                       ( Jwk )
+import           Data.Aeson            (FromJSON, parseJSON, withText)
+import           Data.Aeson.TH         (Options (..), defaultOptions,
+                                        deriveFromJSON)
+import           Data.Aeson.Types      (camelTo2)
+import           Data.Text             (Text, unpack)
+import           Jose.Jwa              (JwsAlg (..))
+import           Jose.Jwk              (Jwk)
 
-import           Web.OIDC.Client.Types          ( IssuerLocation
-                                                , ScopeValue
-                                                )
+import           Web.OIDC.Client.Types (IssuerLocation, ScopeValue)
 
 -- | An OpenID Provider information
 data Provider = Provider { configuration :: Configuration, jwkSet :: [Jwk] }
