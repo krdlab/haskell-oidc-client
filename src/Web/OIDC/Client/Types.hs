@@ -6,36 +6,41 @@
     Stability: experimental
 -}
 module Web.OIDC.Client.Types
-    (
-      ScopeValue
-    , openId, profile, email, address, phone, offlineAccess
-    , Scope
-    , State
-    , Nonce
-    , Parameters
-    , Code
-    , IssuerLocation
-    , OpenIdException(..)
-    , SessionStore (..)
-    ) where
+  ( ScopeValue
+  , openId
+  , profile
+  , email
+  , address
+  , phone
+  , offlineAccess
+  , Scope
+  , State
+  , Nonce
+  , Parameters
+  , Code
+  , IssuerLocation
+  , OpenIdException(..)
+  , SessionStore(..)
+  )
+where
 
-import           Control.Exception   (Exception)
-import           Data.ByteString     (ByteString)
-import           Data.Text           (Text)
-import           Data.Typeable       (Typeable)
-import           Jose.Jwt            (JwtError)
-import           Network.HTTP.Client (HttpException)
+import           Control.Exception              ( Exception )
+import           Data.ByteString                ( ByteString )
+import           Data.Text                      ( Text )
+import           Data.Typeable                  ( Typeable )
+import           Jose.Jwt                       ( JwtError )
+import           Network.HTTP.Client            ( HttpException )
 
 type IssuerLocation = Text
 
 type ScopeValue = Text
 
 openId, profile, email, address, phone, offlineAccess :: ScopeValue
-openId        = "openid"
-profile       = "profile"
-email         = "email"
-address       = "address"
-phone         = "phone"
+openId = "openid"
+profile = "profile"
+email = "email"
+address = "address"
+phone = "phone"
 offlineAccess = "offline_access"
 
 type Scope = [ScopeValue]

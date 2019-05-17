@@ -6,18 +6,33 @@
 -}
 module Web.OIDC.Client.Internal where
 
-import           Control.Applicative   ((<|>))
-import           Control.Monad         (mzero)
-import           Control.Monad.Catch   (MonadCatch, MonadThrow, throwM)
-import           Data.Aeson            (FromJSON, Value (..), parseJSON, (.:),
-                                        (.:?))
-import           Data.Aeson.Types      (Parser)
-import           Data.Text             (Text, unpack)
-import           Data.Text.Read        (decimal)
-import           Jose.Jwt              (Jwt)
-import           Network.HTTP.Client   (HttpException, Request, parseRequest)
-import           Prelude               hiding (exp)
-import           Web.OIDC.Client.Types (OpenIdException (InternalHttpException))
+import           Control.Applicative            ( (<|>) )
+import           Control.Monad                  ( mzero )
+import           Control.Monad.Catch            ( MonadCatch
+                                                , MonadThrow
+                                                , throwM
+                                                )
+import           Data.Aeson                     ( FromJSON
+                                                , Value(..)
+                                                , parseJSON
+                                                , (.:)
+                                                , (.:?)
+                                                )
+import           Data.Aeson.Types               ( Parser )
+import           Data.Text                      ( Text
+                                                , unpack
+                                                )
+import           Data.Text.Read                 ( decimal )
+import           Jose.Jwt                       ( Jwt )
+import           Network.HTTP.Client            ( HttpException
+                                                , Request
+                                                , parseRequest
+                                                )
+import           Prelude                 hiding ( exp )
+import           Web.OIDC.Client.Types          ( OpenIdException
+                                                  ( InternalHttpException
+                                                  )
+                                                )
 
 data TokensResponse = TokensResponse
     { accessToken  :: !Text
@@ -38,11 +53,11 @@ instance FromJSON TokensResponse where
     parseJSON _          = mzero
 
 textToInt :: Maybe Text -> Parser (Maybe Integer)
-textToInt (Just t) =
-    case decimal t of
-        Right (i, _) -> pure $ Just i
-        Left  _      -> fail "expires_in: expected a decimal text, encountered a non decimal text"
-textToInt _        = pure Nothing
+textToInt (Just t) = case decimal t of
+  Right (i, _) -> pure $ Just i
+  Left _ ->
+    fail "expires_in: expected a decimal text, encountered a non decimal text"
+textToInt _ = pure Nothing
 
 rethrow :: (MonadCatch m) => HttpException -> m a
 rethrow = throwM . InternalHttpException
