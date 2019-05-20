@@ -23,8 +23,9 @@ import           Control.Monad.IO.Class             (MonadIO, liftIO)
 import           Data.Aeson                         (FromJSON, eitherDecode)
 import qualified Data.ByteString.Char8              as B
 import qualified Data.ByteString.Lazy.Char8         as BL
+import           Data.Either                        (partitionEithers)
 import           Data.List                          (nub)
-import           Data.Maybe                         (isNothing, listToMaybe)
+import           Data.Maybe                         (isNothing)
 import           Data.Monoid                        ((<>))
 import           Data.Text                          (Text, pack, unpack)
 import           Data.Text.Encoding                 (decodeUtf8)
@@ -169,11 +170,16 @@ validateIdToken oidc jwt' = do
     let jwks = P.jwkSet . oidcProvider $ oidc
         token = Jwt.unJwt jwt'
         alg = fmap (Jwt.JwsEncoding . P.getJwsAlg)
-                . listToMaybe
                 . P.idTokenSigningAlgValuesSupported
                 . P.configuration
                 $ oidcProvider oidc
-    decoded <- Jwt.decode jwks alg token
+    decoded <-
+        (\x -> case partitionEithers x of
+            (_    , k : _) -> Right k
+            (e : _, _    ) -> Left e
+            ([]   , []   ) -> Left $ Jwt.KeyError "No Keys available for decoding" 
+        )
+        <$> traverse (\alg' -> Jwt.decode jwks (Just alg') token) alg
     case decoded of
         Right (Unsecured payload)      -> throwM $ UnsecuredJwt payload
         Right (Jws (_header, payload)) -> parsePayload payload
