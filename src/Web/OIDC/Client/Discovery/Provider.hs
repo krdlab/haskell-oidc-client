@@ -17,6 +17,7 @@ import           Data.Aeson            (FromJSON, parseJSON, withText)
 import           Data.Aeson.TH         (Options (..), defaultOptions,
                                         deriveFromJSON)
 import           Data.Aeson.Types      (camelTo2)
+import           Data.Monoid           ((<>))
 import           Data.Text             (Text, unpack)
 import           Jose.Jwa              (JwsAlg (..))
 import           Jose.Jwk              (Jwk)
