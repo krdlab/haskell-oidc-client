@@ -18,9 +18,9 @@ module Web.OIDC.Client.Discovery
 
 import           Control.Monad.Catch                (catch, throwM)
 import           Data.Aeson                         (decode)
-import           Data.Text                          (append)
+import           Data.ByteString                    (append)
 import qualified Jose.Jwk                           as Jwk
-import           Network.HTTP.Client                (Manager, httpLbs,
+import           Network.HTTP.Client                (Manager, httpLbs, path,
                                                      responseBody)
 
 import           Web.OIDC.Client.Discovery.Issuers  (google)
@@ -41,9 +41,11 @@ discover location manager = do
         Just c  -> Provider c . jwks <$> getJwkSetJson (jwksUri c) `catch` rethrow
         Nothing -> throwM $ DiscoveryException "failed to decode configuration"
   where
+    appendPath suffix req = req { path = path req `append` suffix }
     getConfiguration = do
-        req <- parseUrl (location `append` "/.well-known/openid-configuration")
-        res <- httpLbs req manager
+        req <- parseUrl location
+        let req' = appendPath "/.well-known/openid-configuration" req
+        res <- httpLbs req' manager
         return $ decode $ responseBody res
     getJwkSetJson url = do
         req <- parseUrl url
