@@ -22,15 +22,12 @@ import           Control.Monad.Catch                (MonadCatch, MonadThrow,
 import           Control.Monad.IO.Class             (MonadIO, liftIO)
 import           Data.Aeson                         (FromJSON, eitherDecode)
 import qualified Data.ByteString.Char8              as B
-import qualified Data.ByteString.Lazy.Char8         as BL
-import           Data.Either                        (partitionEithers)
 import           Data.List                          (nub)
 import           Data.Maybe                         (isNothing)
 import           Data.Monoid                        ((<>))
 import           Data.Text                          (Text, pack, unpack)
 import           Data.Text.Encoding                 (decodeUtf8)
 import           Data.Time.Clock.POSIX              (getPOSIXTime)
-import           Jose.Jwt                           (Jwt, JwtContent (Jwe, Jws, Unsecured))
 import qualified Jose.Jwt                           as Jwt
 import           Network.HTTP.Client                (Manager, Request (..),
                                                      getUri, httpLbs,
@@ -45,7 +42,7 @@ import qualified Web.OIDC.Client.Discovery.Provider as P
 import           Web.OIDC.Client.Internal           (parseUrl)
 import qualified Web.OIDC.Client.Internal           as I
 import           Web.OIDC.Client.Settings           (OIDC (..))
-import           Web.OIDC.Client.Tokens             (IdTokenClaims (..),
+import           Web.OIDC.Client.Tokens             (IdTokenClaims (..), validateIdToken,
                                                      Tokens (..))
 import           Web.OIDC.Client.Types              (Code, Nonce,
                                                      OpenIdException (..),
@@ -164,33 +161,6 @@ validate oidc savedNonce tres = do
         , expiresIn    = I.expiresIn tres
         , refreshToken = I.refreshToken tres
         }
-
-validateIdToken :: FromJSON a => OIDC -> Jwt -> IO (IdTokenClaims a)
-validateIdToken oidc jwt' = do
-    let jwks = P.jwkSet . oidcProvider $ oidc
-        token = Jwt.unJwt jwt'
-        alg = fmap (Jwt.JwsEncoding . P.getJwsAlg)
-                . P.idTokenSigningAlgValuesSupported
-                . P.configuration
-                $ oidcProvider oidc
-    decoded <-
-        (\x -> case partitionEithers x of
-            (_    , k : _) -> Right k
-            (e : _, _    ) -> Left e
-            ([]   , []   ) -> Left $ Jwt.KeyError "No Keys available for decoding" 
-        )
-        <$> traverse (\alg' -> Jwt.decode jwks (Just alg') token) alg
-    case decoded of
-        Right (Unsecured payload)      -> throwM $ UnsecuredJwt payload
-        Right (Jws (_header, payload)) -> parsePayload payload
-        Right (Jwe (_header, payload)) -> parsePayload payload
-        Left err                       -> throwM $ JwtExceptoin err
-
-  where
-    parsePayload payload =
-        case eitherDecode $ BL.fromStrict payload of
-            Right x  -> return x
-            Left err -> throwM . JsonException $ pack err
 
 validateClaims :: Text -> Text -> Jwt.IntDate -> Maybe Nonce -> IdTokenClaims a -> IO ()
 validateClaims issuer' clientId' now savedNonce claims' = do
