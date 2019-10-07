@@ -17,7 +17,7 @@ import           Control.Monad.IO.Class             (MonadIO, liftIO)
 import           Data.Aeson                         (FromJSON)
 import qualified Data.ByteString.Char8              as B
 import           Data.List                          (nub)
-import           Data.Maybe                         (isNothing)
+import           Data.Maybe                         (isNothing, fromMaybe)
 import           Data.Monoid                        ((<>))
 import           Data.Text                          (unpack)
 import           Data.Text.Encoding                 (decodeUtf8)
@@ -66,7 +66,12 @@ getValidIdTokenClaims store oidc stateFromIdP getIdToken = do
           when (isNothing savedNonce) $ liftIO $ throwIO $ ValidationException "Nonce is not saved!"
           jwt <- Jwt.Jwt <$> getIdToken
           sessionStoreDelete store
-          liftIO $ validateIdToken oidc jwt
+          idToken <- liftIO $ validateIdToken oidc jwt
+          when (fromMaybe True $ (/=) <$> savedNonce <*> nonce idToken)
+                $ liftIO
+                $ throwIO
+                $ ValidationException "Nonce does not match request."
+          pure idToken
       else liftIO $ throwIO $ ValidationException $ "Incosistent state: " <> decodeUtf8 stateFromIdP
 
 -- | Make URL for Authorization Request.
