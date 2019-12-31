@@ -75,16 +75,9 @@ validateIdToken oidc jwt' = do
               . P.configuration
               $ oidcProvider oidc
     decoded <-
-        (\x -> case partitionEithers x of
-                (_, k : _) -> Right k
-                (e : _, _) -> Left e
-                ([], []) -> Left $ Jwt.KeyError "No Keys available for decoding"
-            )
+        selectDecodedResult
             <$> traverse
-                    (\case
-                        P.JwsAlgJson  alg -> liftIO $ Jwt.decode jwks (Just $ Jwt.JwsEncoding alg) token
-                        P.Unsupported alg -> return $ Left $ Jwt.BadAlgorithm ("Unsupported algorithm: " <> alg)
-                        )
+                    (tryDecode jwks token)
                     algs
     case decoded of
         Right (Unsecured payload) -> liftIO . throwIO $ UnsecuredJwt payload
@@ -92,6 +85,15 @@ validateIdToken oidc jwt' = do
         Right (Jwe (_header, payload)) -> parsePayload payload
         Left err -> liftIO . throwIO $ JwtExceptoin err
   where
+    tryDecode jwks token = \case
+        P.JwsAlgJson  alg -> liftIO $ Jwt.decode jwks (Just $ Jwt.JwsEncoding alg) token
+        P.Unsupported alg -> return $ Left $ Jwt.BadAlgorithm ("Unsupported algorithm: " <> alg)
+
+    selectDecodedResult xs = case partitionEithers xs of
+        (_, k : _) -> Right k
+        (e : _, _) -> Left e
+        ([], [])   -> Left $ Jwt.KeyError "No Keys available for decoding"
+
     parsePayload payload = case eitherDecode $ BL.fromStrict payload of
         Right x   -> return x
         Left  err -> liftIO . throwIO . JsonException $ pack err
