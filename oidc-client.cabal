@@ -35,6 +35,7 @@ library
   exposed-modules:
       Web.OIDC.Client
     , Web.OIDC.Client.CodeFlow
+    , Web.OIDC.Client.IdTokenFlow
     , Web.OIDC.Client.Discovery
     , Web.OIDC.Client.Discovery.Issuers
     , Web.OIDC.Client.Discovery.Provider
