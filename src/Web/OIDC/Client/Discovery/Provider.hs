@@ -17,8 +17,7 @@ import           Data.Aeson            (FromJSON, parseJSON, withText)
 import           Data.Aeson.TH         (Options (..), defaultOptions,
                                         deriveFromJSON)
 import           Data.Aeson.Types      (camelTo2)
-import           Data.Monoid           ((<>))
-import           Data.Text             (Text, unpack)
+import           Data.Text             (Text)
 import           Jose.Jwa              (JwsAlg (..))
 import           Jose.Jwk              (Jwk)
 
@@ -27,7 +26,7 @@ import           Web.OIDC.Client.Types (IssuerLocation, ScopeValue)
 -- | An OpenID Provider information
 data Provider = Provider { configuration :: Configuration, jwkSet :: [Jwk] }
 
-newtype JwsAlgJson = JwsAlgJson { getJwsAlg :: JwsAlg } deriving (Show, Eq)
+data JwsAlgJson = JwsAlgJson { getJwsAlg :: JwsAlg } | Unsupported Text deriving (Show, Eq)
 
 instance FromJSON JwsAlgJson where
     parseJSON = withText "JwsAlgJson" $ \case
@@ -41,7 +40,7 @@ instance FromJSON JwsAlgJson where
         "ES384" -> pure $ JwsAlgJson ES384
         "ES512" -> pure $ JwsAlgJson ES512
         "none"  -> pure $ JwsAlgJson None
-        other   -> fail $ "Non-supported alg: " <> show (unpack other)
+        other   -> pure $ Unsupported other
 
 
 -- | An OpenID Provider Configuration

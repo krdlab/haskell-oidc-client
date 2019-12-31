@@ -1,5 +1,6 @@
 {-# LANGUAGE DeriveGeneric     #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE LambdaCase #-}
 
 {-|
     Module: Web.OIDC.Client.Tokens
@@ -70,11 +71,9 @@ validateIdToken :: (MonadIO m, FromJSON a) => OIDC -> Jwt -> m (IdTokenClaims a)
 validateIdToken oidc jwt' = do
     let jwks  = P.jwkSet . oidcProvider $ oidc
         token = Jwt.unJwt jwt'
-        alg =
-            fmap (Jwt.JwsEncoding . P.getJwsAlg)
-                . P.idTokenSigningAlgValuesSupported
-                . P.configuration
-                $ oidcProvider oidc
+        algs  = P.idTokenSigningAlgValuesSupported
+              . P.configuration
+              $ oidcProvider oidc
     decoded <-
         (\x -> case partitionEithers x of
                 (_, k : _) -> Right k
@@ -82,8 +81,11 @@ validateIdToken oidc jwt' = do
                 ([], []) -> Left $ Jwt.KeyError "No Keys available for decoding"
             )
             <$> traverse
-                    (\alg' -> liftIO $ Jwt.decode jwks (Just alg') token)
-                    alg
+                    (\case
+                        P.JwsAlgJson  alg -> liftIO $ Jwt.decode jwks (Just $ Jwt.JwsEncoding alg) token
+                        P.Unsupported alg -> return $ Left $ Jwt.BadAlgorithm ("Unsupported algorithm: " <> alg)
+                        )
+                    algs
     case decoded of
         Right (Unsecured payload) -> liftIO . throwIO $ UnsecuredJwt payload
         Right (Jws (_header, payload)) -> parsePayload payload
