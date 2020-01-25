@@ -1,8 +1,14 @@
 # ChangeLog
 
-## [Unreleased]
+## [0.5.0.0]
+### Added
+- Add implicit id_token flow. See [#34](https://github.com/krdlab/haskell-oidc-client/pull/34).
 
-Nothing yet.
+### Changed
+- discover: Append well-known part to parsed request. See [#33](https://github.com/krdlab/haskell-oidc-client/pull/33).
+
+### Fixed
+- Fix unsupported algorithm error. See [#36](https://github.com/krdlab/haskell-oidc-client/pull/36).
 
 ## [0.4.0.1]
 ### Fixed
