@@ -50,7 +50,7 @@ discover location manager = do
 
     getConfiguration = do
         req <- parseUrl location
-        let req' = appendPath "/.well-known/openid-configuration" req
+        let req' = appendPath ".well-known/openid-configuration" req
         res <- httpLbs req' manager
         return $ eitherDecode $ responseBody res
 
