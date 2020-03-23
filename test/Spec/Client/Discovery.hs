@@ -21,3 +21,7 @@ tests =
         it "should return a valid URL if the location has a path" $ do
             url <- generateDiscoveryUrl "https://login.microsoftonline.com/common/v2.0"
             path url `shouldBe` "/common/v2.0/.well-known/openid-configuration"
+
+        it "should return a valid URL if the location has both path and trailing slash" $ do
+            url <- generateDiscoveryUrl "https://login.microsoftonline.com/common/v2.0/"
+            path url `shouldBe` "/common/v2.0/.well-known/openid-configuration"
