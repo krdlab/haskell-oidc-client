@@ -68,6 +68,6 @@ generateDiscoveryUrl location = do
   where
     appendPath suffix req =
         let p = path req
-            p' = if p `isSuffixOf` "/" then p else p `append` "/"
+            p' = if "/" `isSuffixOf` p then p else p `append` "/"
         in
             req { path = p' `append` suffix }
