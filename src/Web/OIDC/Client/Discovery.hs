@@ -21,7 +21,7 @@ module Web.OIDC.Client.Discovery
 
 import           Control.Monad.Catch                (catch, throwM)
 import           Data.Aeson                         (eitherDecode)
-import           Data.ByteString                    (append)
+import           Data.ByteString                    (append, isSuffixOf)
 import           Data.Text                          (pack)
 import qualified Jose.Jwk                           as Jwk
 import           Network.HTTP.Client                (Manager, Request, httpLbs,
@@ -66,4 +66,8 @@ generateDiscoveryUrl location = do
     req <- parseUrl location
     return $ appendPath ".well-known/openid-configuration" req
   where
-    appendPath suffix req = req { path = path req `append` suffix }
+    appendPath suffix req =
+        let p = path req
+            p' = if p `isSuffixOf` "/" then p else p `append` "/"
+        in
+            req { path = p' `append` suffix }
