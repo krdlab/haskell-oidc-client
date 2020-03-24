@@ -14,15 +14,18 @@ module Web.OIDC.Client.Discovery
     -- * OpenID Provider Configuration Information
     , Provider(..)
     , Configuration(..)
+
+    -- * For testing
+    , generateDiscoveryUrl
     ) where
 
 import           Control.Monad.Catch                (catch, throwM)
 import           Data.Aeson                         (eitherDecode)
-import           Data.ByteString                    (append)
+import           Data.ByteString                    (append, isSuffixOf)
 import           Data.Text                          (pack)
 import qualified Jose.Jwk                           as Jwk
-import           Network.HTTP.Client                (Manager, httpLbs, path,
-                                                     responseBody)
+import           Network.HTTP.Client                (Manager, Request, httpLbs,
+                                                     path, responseBody)
 
 import           Web.OIDC.Client.Discovery.Issuers  (google)
 import           Web.OIDC.Client.Discovery.Provider (Configuration (..),
@@ -46,12 +49,9 @@ discover location manager = do
                 Left  err  -> throwM $ DiscoveryException ("Failed to decode JwkSet: " <> pack err)
         Left  err -> throwM $ DiscoveryException ("Failed to decode configuration: " <> pack err)
   where
-    appendPath suffix req = req { path = path req `append` suffix }
-
     getConfiguration = do
-        req <- parseUrl location
-        let req' = appendPath ".well-known/openid-configuration" req
-        res <- httpLbs req' manager
+        req <- generateDiscoveryUrl location
+        res <- httpLbs req manager
         return $ eitherDecode $ responseBody res
 
     getJwkSetJson url = do
@@ -60,3 +60,14 @@ discover location manager = do
         return $ responseBody res
 
     jwks j = Jwk.keys <$> eitherDecode j
+
+generateDiscoveryUrl :: IssuerLocation -> IO Request
+generateDiscoveryUrl location = do
+    req <- parseUrl location
+    return $ appendPath ".well-known/openid-configuration" req
+  where
+    appendPath suffix req =
+        let p = path req
+            p' = if "/" `isSuffixOf` p then p else p `append` "/"
+        in
+            req { path = p' `append` suffix }

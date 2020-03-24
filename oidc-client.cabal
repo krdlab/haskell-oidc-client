@@ -71,6 +71,7 @@ test-suite oidc-client-spec
   main-is:              Spec.hs
   other-modules:
       Spec.Client
+    , Spec.Client.Discovery
     , Spec.Client.Internal
 
     -- NOTE: The following modules are needed for using Web.OIDC.Client.Internal.
