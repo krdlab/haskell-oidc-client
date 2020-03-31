@@ -1,5 +1,11 @@
 # ChangeLog
 
+## [0.5.1.0]
+### Fixed
+- fix: generate correct discovery url ([#39](https://github.com/krdlab/haskell-oidc-client/pull/39))
+- Fix discovery URL generation ([#40](https://github.com/krdlab/haskell-oidc-client/pull/40))
+    - Corrected more cases
+
 ## [0.5.0.0]
 ### Added
 - Add implicit id_token flow. See [#34](https://github.com/krdlab/haskell-oidc-client/pull/34).
