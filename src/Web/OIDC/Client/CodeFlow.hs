@@ -76,14 +76,11 @@ getValidTokens
     -> Code
     -> m (Tokens a)
 getValidTokens store oidc mgr stateFromIdP code = do
-    (state, savedNonce) <- sessionStoreGet store
-    if state == Just stateFromIdP
-      then do
-          when (isNothing savedNonce) $ throwM $ ValidationException "Nonce is not saved!"
-          result <- liftIO $ requestTokens oidc savedNonce code mgr
-          sessionStoreDelete store
-          return result
-      else throwM $ ValidationException $ "Inconsistent state: " <> decodeUtf8With lenientDecode stateFromIdP
+    savedNonce <- sessionStoreGet store stateFromIdP
+    when (isNothing savedNonce) $ throwM UnknownState
+    result <- liftIO $ requestTokens oidc savedNonce code mgr
+    sessionStoreDelete store
+    return result
 
 -- | Make URL for Authorization Request.
 {-# WARNING getAuthenticationRequestUrl "This function doesn't manage state and nonce. Use prepareAuthenticationRequestUrl only unless your IdP doesn't support state and/or nonce." #-}
