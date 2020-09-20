@@ -158,6 +158,7 @@ validate oidc savedNonce tres = do
           accessToken  = I.accessToken tres
         , tokenType    = I.tokenType tres
         , idToken      = claims'
+        , idTokenJwt   = jwt'
         , expiresIn    = I.expiresIn tres
         , refreshToken = I.refreshToken tres
         }

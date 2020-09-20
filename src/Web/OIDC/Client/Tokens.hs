@@ -38,6 +38,7 @@ data Tokens a = Tokens
     { accessToken  :: Text
     , tokenType    :: Text
     , idToken      :: IdTokenClaims a
+    , idTokenJwt   :: Jwt
     , expiresIn    :: Maybe Integer
     , refreshToken :: Maybe Text
     }
