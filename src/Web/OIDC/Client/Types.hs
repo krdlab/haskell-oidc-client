@@ -53,7 +53,7 @@ data OpenIdException =
     | InternalHttpException HttpException
     | JsonException Text
     | UnsecuredJwt ByteString
-    | JwtExceptoin JwtError
+    | JwtException JwtError
     | ValidationException Text
   deriving (Show, Typeable)
 

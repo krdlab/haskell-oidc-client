@@ -84,7 +84,7 @@ validateIdToken oidc jwt' = do
         Right (Unsecured payload) -> liftIO . throwIO $ UnsecuredJwt payload
         Right (Jws (_header, payload)) -> parsePayload payload
         Right (Jwe (_header, payload)) -> parsePayload payload
-        Left err -> liftIO . throwIO $ JwtExceptoin err
+        Left err -> liftIO . throwIO $ JwtException err
   where
     tryDecode jwks token = \case
         P.JwsAlgJson  alg -> liftIO $ Jwt.decode jwks (Just $ Jwt.JwsEncoding alg) token
