@@ -19,6 +19,7 @@ module Web.OIDC.Client.Discovery
     , generateDiscoveryUrl
     ) where
 
+import           Data.Monoid
 import           Control.Monad.Catch                (catch, throwM)
 import           Data.Aeson                         (eitherDecode)
 import           Data.ByteString                    (append, isSuffixOf)
