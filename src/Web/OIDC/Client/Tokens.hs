@@ -14,7 +14,7 @@ module Web.OIDC.Client.Tokens
     )
 where
 
-import           Data.Monoid
+import           Data.Monoid                        ((<>))
 import           Control.Applicative                ((<|>))
 import           Control.Exception                  (throwIO)
 import           Control.Monad.IO.Class             (MonadIO, liftIO)
