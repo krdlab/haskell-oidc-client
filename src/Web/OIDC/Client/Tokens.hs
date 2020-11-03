@@ -1,6 +1,6 @@
 {-# LANGUAGE DeriveGeneric     #-}
+{-# LANGUAGE LambdaCase        #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE LambdaCase #-}
 
 {-|
     Module: Web.OIDC.Client.Tokens
@@ -14,7 +14,6 @@ module Web.OIDC.Client.Tokens
     )
 where
 
-import           Data.Monoid                        ((<>))
 import           Control.Applicative                ((<|>))
 import           Control.Exception                  (throwIO)
 import           Control.Monad.IO.Class             (MonadIO, liftIO)
@@ -25,6 +24,7 @@ import           Data.Aeson                         (FromJSON (parseJSON),
 import           Data.ByteString                    (ByteString)
 import qualified Data.ByteString.Lazy.Char8         as BL
 import           Data.Either                        (partitionEithers)
+import           Data.Monoid                        ((<>))
 import           Data.Text                          (Text, pack)
 import           Data.Text.Encoding                 (encodeUtf8)
 import           GHC.Generics                       (Generic)

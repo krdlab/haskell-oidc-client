@@ -19,10 +19,10 @@ module Web.OIDC.Client.Discovery
     , generateDiscoveryUrl
     ) where
 
-import           Data.Monoid                        ((<>))
 import           Control.Monad.Catch                (catch, throwM)
 import           Data.Aeson                         (eitherDecode)
 import           Data.ByteString                    (append, isSuffixOf)
+import           Data.Monoid                        ((<>))
 import           Data.Text                          (pack)
 import qualified Jose.Jwk                           as Jwk
 import           Network.HTTP.Client                (Manager, Request, httpLbs,
