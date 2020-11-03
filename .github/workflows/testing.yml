@@ -1,0 +1,56 @@
+name: Testing
+
+on:
+  push:
+    branches:
+      - master
+    paths-ignore:
+      - "**.md"
+  pull_request:
+    branches:
+      - master
+    paths-ignore:
+      - "**.md"
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        resolver:
+          - lts-12
+          - lts-13
+          - lts-14
+          - lts-15
+          - lts-16
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-haskell@v1
+        with:
+          ghc-version: '8.10.2'
+          cabal-version: '3.4.0.0'
+
+      - uses: actions/cache@v2
+        env:
+          cache-name: cache-stack
+        with:
+          path: |
+            .stack-work
+            ~/.stack
+          key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ matrix.resolver }}-${{ hashFiles('stack.yaml') }}-${{ hashFiles('*.cabal') }}
+          restore-keys: |
+            ${{ runner.os }}-build-${{ env.cache-name }}-${{ matrix.resolver }}-
+            ${{ runner.os }}-build-${{ env.cache-name }}-
+            ${{ runner.os }}-build-
+            ${{ runner.os }}-
+
+      - name: Setup
+        run: stack setup --resolver ${{ matrix.resolver }}
+
+      - name: Build
+        run: |
+          stack build --resolver ${{ matrix.resolver }}
+          stack build --flag oidc-client:build-examples --resolver ${{ matrix.resolver }}
+
+      - name: Run tests
+        run: stack test --resolver ${{ matrix.resolver }}
