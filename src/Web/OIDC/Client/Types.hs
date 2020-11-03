@@ -64,8 +64,8 @@ instance Exception OpenIdException
 data SessionStore m = SessionStore
     { sessionStoreGenerate :: m ByteString
     -- ^ Generate state and nonce at random
-    , sessionStoreSave :: State -> Nonce -> m ()
-    , sessionStoreGet :: m (Maybe State, Maybe Nonce)
-    , sessionStoreDelete :: m ()
+    , sessionStoreSave     :: State -> Nonce -> m ()
+    , sessionStoreGet      :: m (Maybe State, Maybe Nonce)
+    , sessionStoreDelete   :: m ()
     -- ^ Should delete at least nonce
     }
