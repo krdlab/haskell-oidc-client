@@ -1,5 +1,13 @@
 # ChangeLog
 
+## [0.6.0.0]
+### Added
+- Preserve the raw JWT in the tokens record returned by `validate` ([#43](https://github.com/krdlab/haskell-oidc-client/pull/43))
+
+### Fixed
+- s/JwtExceptoin/JwtException/ ([#45](https://github.com/krdlab/haskell-oidc-client/pull/45))
+- import data.monoid ([#46](https://github.com/krdlab/haskell-oidc-client/pull/46))
+
 ## [0.5.1.0]
 ### Fixed
 - fix: generate correct discovery url ([#39](https://github.com/krdlab/haskell-oidc-client/pull/39))
