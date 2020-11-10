@@ -26,7 +26,8 @@ import           Data.List                          (nub)
 import           Data.Maybe                         (isNothing)
 import           Data.Monoid                        ((<>))
 import           Data.Text                          (Text, pack, unpack)
-import           Data.Text.Encoding                 (decodeUtf8)
+import           Data.Text.Encoding                 (decodeUtf8With)
+import           Data.Text.Encoding.Error           (lenientDecode)
 import           Data.Time.Clock.POSIX              (getPOSIXTime)
 import qualified Jose.Jwt                           as Jwt
 import           Network.HTTP.Client                (Manager, Request (..),
@@ -82,7 +83,7 @@ getValidTokens store oidc mgr stateFromIdP code = do
           result <- liftIO $ requestTokens oidc savedNonce code mgr
           sessionStoreDelete store
           return result
-      else throwM $ ValidationException $ "Incosistent state: " <> decodeUtf8 stateFromIdP
+      else throwM $ ValidationException $ "Incosistent state: " <> decodeUtf8With lenientDecode stateFromIdP
 
 -- | Make URL for Authorization Request.
 {-# WARNING getAuthenticationRequestUrl "This function doesn't manage state and nonce. Use prepareAuthenticationRequestUrl only unless your IdP doesn't support state and/or nonce." #-}
@@ -150,7 +151,7 @@ validate oidc savedNonce tres = do
     now <- getCurrentIntDate
     validateClaims
         (P.issuer . P.configuration . oidcProvider $ oidc)
-        (decodeUtf8 . oidcClientId $ oidc)
+        (decodeUtf8With lenientDecode . oidcClientId $ oidc)
         now
         savedNonce
         claims'

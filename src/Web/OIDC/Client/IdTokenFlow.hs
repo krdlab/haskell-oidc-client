@@ -20,7 +20,8 @@ import           Data.List                          (nub)
 import           Data.Maybe                         (isNothing, fromMaybe)
 import           Data.Monoid                        ((<>))
 import           Data.Text                          (unpack)
-import           Data.Text.Encoding                 (decodeUtf8)
+import           Data.Text.Encoding                 (decodeUtf8With)
+import           Data.Text.Encoding.Error           (lenientDecode)
 import qualified Jose.Jwt                           as Jwt
 import           Network.HTTP.Client                (getUri, setQueryString)
 import           Network.URI                        (URI)
@@ -72,7 +73,7 @@ getValidIdTokenClaims store oidc stateFromIdP getIdToken = do
                 $ throwIO
                 $ ValidationException "Nonce does not match request."
           pure idToken
-      else liftIO $ throwIO $ ValidationException $ "Incosistent state: " <> decodeUtf8 stateFromIdP
+      else liftIO $ throwIO $ ValidationException $ "Incosistent state: " <> decodeUtf8With lenientDecode stateFromIdP
 
 -- | Make URL for Authorization Request.
 {-# WARNING getAuthenticationRequestUrl "This function doesn't manage state and nonce. Use prepareAuthenticationRequestUrl only unless your IdP doesn't support state and/or nonce." #-}
