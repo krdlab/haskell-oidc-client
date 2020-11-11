@@ -83,7 +83,7 @@ getValidTokens store oidc mgr stateFromIdP code = do
           result <- liftIO $ requestTokens oidc savedNonce code mgr
           sessionStoreDelete store
           return result
-      else throwM $ ValidationException $ "Incosistent state: " <> decodeUtf8With lenientDecode stateFromIdP
+      else throwM $ ValidationException $ "Inconsistent state: " <> decodeUtf8With lenientDecode stateFromIdP
 
 -- | Make URL for Authorization Request.
 {-# WARNING getAuthenticationRequestUrl "This function doesn't manage state and nonce. Use prepareAuthenticationRequestUrl only unless your IdP doesn't support state and/or nonce." #-}
