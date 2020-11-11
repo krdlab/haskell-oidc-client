@@ -72,7 +72,7 @@ getValidIdTokenClaims store oidc stateFromIdP getIdToken = do
                 $ throwIO
                 $ ValidationException "Nonce does not match request."
           pure idToken
-      else liftIO $ throwIO $ ValidationException $ "Incosistent state: " <> decodeUtf8 stateFromIdP
+      else liftIO $ throwIO $ ValidationException $ "Inconsistent state: " <> decodeUtf8 stateFromIdP
 
 -- | Make URL for Authorization Request.
 {-# WARNING getAuthenticationRequestUrl "This function doesn't manage state and nonce. Use prepareAuthenticationRequestUrl only unless your IdP doesn't support state and/or nonce." #-}
