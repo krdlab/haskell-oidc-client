@@ -7,6 +7,8 @@
 ### Fixed
 - s/JwtExceptoin/JwtException/ ([#45](https://github.com/krdlab/haskell-oidc-client/pull/45))
 - import data.monoid ([#46](https://github.com/krdlab/haskell-oidc-client/pull/46))
+- s/Incosistent/Inconsistent/ ([#49](https://github.com/krdlab/haskell-oidc-client/pull/49))
+- Use lenient decoding ([#50](https://github.com/krdlab/haskell-oidc-client/pull/50))
 
 ## [0.5.1.0]
 ### Fixed
