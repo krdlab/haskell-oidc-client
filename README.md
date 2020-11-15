@@ -1,6 +1,6 @@
 # OpenID Connect 1.0 library for Relying Party
 
-[![Circle CI](https://circleci.com/gh/krdlab/haskell-oidc-client.svg?style=svg)](https://circleci.com/gh/krdlab/haskell-oidc-client)
+[![Testing](https://github.com/krdlab/haskell-oidc-client/workflows/Testing/badge.svg)](https://github.com/krdlab/haskell-oidc-client/actions?query=workflow%3ATesting)
 
 This package supports implementing of an OpenID Connect 1.0 Relying Party. It's written in Haskell.
 
