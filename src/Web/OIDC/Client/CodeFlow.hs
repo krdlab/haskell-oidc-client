@@ -1,5 +1,4 @@
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE BlockArguments #-}
 {-|
     Module: Web.OIDC.Client.CodeFlow
     Maintainer: krdlab@gmail.com
@@ -61,7 +60,7 @@ prepareAuthenticationRequestUrl
     -> Parameters       -- ^ Optional parameters
     -> ReaderT OIDC m URI
 prepareAuthenticationRequestUrl store scope params = do
-    (state, nonce') <- lift do
+    (state, nonce') <- lift $ do
       state <- sessionStoreGenerate store
       nonce' <- sessionStoreGenerate store
       sessionStoreSave store state nonce'
