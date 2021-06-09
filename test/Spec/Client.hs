@@ -1,6 +1,5 @@
 {-# OPTIONS_GHC -Wno-warnings-deprecations #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE BlockArguments #-}
 module Spec.Client where
 
 import           Data.Aeson              (Value (Null))
