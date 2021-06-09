@@ -108,7 +108,7 @@ run' = do
 
         sid <- genSessionId cprg
         let store = sessionStoreFromSession cprg ssm sid
-        loc <- liftIO $ O.prepareAuthenticationRequestUrl store oidc [O.email, O.profile] []
+        loc <- liftIO $ runReaderT (O.prepareAuthenticationRequestUrl store [O.email, O.profile] []) oidc
         setSimpleCookie cookieName sid
         redirect . TL.pack . show $ loc
 
@@ -133,7 +133,7 @@ run' = do
                 let store = sessionStoreFromSession cprg ssm sid
                 state <- param "state"
                 code  <- param "code"
-                tokens <- liftIO $ O.getValidTokens store oidc mgr state code
+                tokens <- liftIO $ runReaderT (O.getValidTokens store mgr state code) oidc
                 blaze $ htmlResult tokens
             Nothing  -> status400 "cookie not found"
 
