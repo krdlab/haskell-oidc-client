@@ -54,6 +54,7 @@ library
     , exceptions
     , http-client
     , tls               >=1.3.2
+    , mtl
     , http-client-tls
     , jose-jwt          >=0.7
     , cryptonite
@@ -101,6 +102,7 @@ test-suite oidc-client-spec
     , exceptions
     , time
     , network-uri
+    , mtl
 
 executable scotty-example
   main-is:          Main.hs

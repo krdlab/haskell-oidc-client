@@ -1,5 +1,6 @@
 {-# OPTIONS_GHC -Wno-warnings-deprecations #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE BlockArguments #-}
 module Spec.Client where
 
 import           Data.Aeson              (Value (Null))
@@ -12,6 +13,7 @@ import           Network.HTTP.Types      (urlEncode)
 import           Test.Hspec              (Spec, describe, it, shouldContain,
                                           shouldNotContain, shouldThrow)
 import           Web.OIDC.Client
+import           Control.Monad.Reader    (runReaderT)
 
 import           Prelude                 hiding (exp)
 
@@ -29,7 +31,7 @@ tests = do
             manager  <- newManager tlsManagerSettings
             provider <- discover google manager
             let oidc = setCredentials clientId clientSecret redirectUri $ newOIDC provider
-            url <- getAuthenticationRequestUrl oidc [] Nothing []
+            url <- runReaderT (getAuthenticationRequestUrl [] Nothing []) oidc
             show url `shouldContain` "response_type=code"
             show url `shouldContain` "scope=openid"
             show url `shouldContain` (toES "client_id" ++ "=" ++ toES clientId)
@@ -41,7 +43,7 @@ tests = do
             provider <- discover google manager
             let oidc = setCredentials clientId clientSecret redirectUri $ newOIDC provider
                 state = "dummy state"
-            url <- getAuthenticationRequestUrl oidc [email] (Just state) [("nonce", Just nonce')]
+            url <- runReaderT (getAuthenticationRequestUrl [email] (Just state) [("nonce", Just nonce')]) oidc
             show url `shouldContain` (toES "scope" ++ "=" ++ toES "openid email")
             show url `shouldContain` (toES "state" ++ "=" ++ toES state)
             show url `shouldContain` (toES "nonce" ++ "=" ++ toES nonce')
