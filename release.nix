@@ -12,7 +12,7 @@ let
     })
   ];
 
-  nixpkgs = import ./nix/20_03.nix;
+  nixpkgs = import ./nix/21_05.nix;
   pkgs    = import nixpkgs { inherit config overlays; };
 
   oidc-client-shell = pkgs.haskellPackages.shellFor {
