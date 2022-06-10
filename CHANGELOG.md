@@ -1,5 +1,8 @@
 # ChangeLog
 
+## [0.6.1.0]
+- Remove max version cap on bytestring and min >= 0.11 ([#54](https://github.com/krdlab/haskell-oidc-client/pull/54))
+
 ## [0.6.0.0]
 ### Added
 - Preserve the raw JWT in the tokens record returned by `validate` ([#43](https://github.com/krdlab/haskell-oidc-client/pull/43))
