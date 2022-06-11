@@ -17,11 +17,11 @@ jobs:
     strategy:
       matrix:
         resolver:
-          - lts-12
-          - lts-13
           - lts-14
           - lts-15
           - lts-16
+          - lts-17
+          - lts-18
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
