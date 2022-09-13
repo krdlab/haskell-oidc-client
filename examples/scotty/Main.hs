@@ -155,11 +155,11 @@ run' = do
     genSessionId cprg          = liftIO $ decodeUtf8 <$> gen cprg
     genBytes cprg              = liftIO $ gen cprg
     saveState ssm sid st nonce = liftIO $ atomicModifyIORef' ssm $ \m -> (M.insert sid (st, nonce) m, ())
-    getStateBy ssm sid         = liftIO $ do
+    getStateBy ssm sid _st     = liftIO $ do
         m <- M.lookup sid <$> readIORef ssm
         return $ case m of
-            Just (st, nonce) -> (Just st, Just nonce)
-            _                -> (Nothing, Nothing)
+            Just (_, nonce) -> Just nonce
+            _               -> Nothing
     deleteState ssm sid  = liftIO $ atomicModifyIORef' ssm $ \m -> (M.delete sid m, ())
 
     sessionStoreFromSession cprg ssm sid =
