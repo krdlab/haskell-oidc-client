@@ -25,7 +25,7 @@ import           Data.Text.Encoding.Error           (lenientDecode)
 import qualified Jose.Jwt                           as Jwt
 import           Network.HTTP.Client                (getUri, setQueryString)
 import           Network.URI                        (URI)
-
+import           Control.Monad.Reader               (ReaderT(..), ask, lift)
 import           Prelude                            hiding (exp)
 
 import           Web.OIDC.Client.Internal           (parseUrl)
@@ -41,32 +41,34 @@ import           Web.OIDC.Client.Types              (OpenIdException (..),
 prepareAuthenticationRequestUrl
     :: (MonadIO m)
     => SessionStore m
-    -> OIDC
     -> Scope            -- ^ used to specify what are privileges requested for tokens. (use `ScopeValue`)
     -> Parameters       -- ^ Optional parameters
-    -> m URI
-prepareAuthenticationRequestUrl store oidc scope params = do
-    state <- sessionStoreGenerate store
-    nonce' <- sessionStoreGenerate store
-    sessionStoreSave store state nonce'
-    getAuthenticationRequestUrl oidc scope (Just state) $ params ++ [("nonce", Just nonce')]
+    -> ReaderT OIDC m URI
+prepareAuthenticationRequestUrl store scope params = do
+    (state,nonce') <- lift $ do
+      state <- sessionStoreGenerate store
+      nonce' <- sessionStoreGenerate store
+      sessionStoreSave store state nonce'
+      pure (state,nonce')
+
+    getAuthenticationRequestUrl scope (Just state) $ params ++ [("nonce", Just nonce')]
 
 -- | Get and validate access token and with code and state stored in the 'SessionStore'.
 --   Then deletes session info by 'sessionStoreDelete'.
 getValidIdTokenClaims
     :: (MonadIO m, FromJSON a)
     => SessionStore m
-    -> OIDC
     -> State
     -> m B.ByteString
-    -> m (IdTokenClaims a)
-getValidIdTokenClaims store oidc stateFromIdP getIdToken = do
-    (state, savedNonce) <- sessionStoreGet store
+    -> ReaderT OIDC m (IdTokenClaims a)
+getValidIdTokenClaims store stateFromIdP getIdToken = do
+    oidc <- ask
+    (state, savedNonce) <- lift (sessionStoreGet store)
     if state == Just stateFromIdP
       then do
           when (isNothing savedNonce) $ liftIO $ throwIO $ ValidationException "Nonce is not saved!"
-          jwt <- Jwt.Jwt <$> getIdToken
-          sessionStoreDelete store
+          jwt <- Jwt.Jwt <$> lift getIdToken
+          lift (sessionStoreDelete store)
           idToken <- liftIO $ validateIdToken oidc jwt
           when (fromMaybe True $ (/=) <$> savedNonce <*> nonce idToken)
                 $ liftIO
@@ -79,25 +81,26 @@ getValidIdTokenClaims store oidc stateFromIdP getIdToken = do
 {-# WARNING getAuthenticationRequestUrl "This function doesn't manage state and nonce. Use prepareAuthenticationRequestUrl only unless your IdP doesn't support state and/or nonce." #-}
 getAuthenticationRequestUrl
     :: (MonadIO m)
-    => OIDC
-    -> Scope            -- ^ used to specify what are privileges requested for tokens. (use `ScopeValue`)
+    => Scope            -- ^ used to specify what are privileges requested for tokens. (use `ScopeValue`)
     -> Maybe State      -- ^ used for CSRF mitigation. (recommended parameter)
     -> Parameters       -- ^ Optional parameters
-    -> m URI
-getAuthenticationRequestUrl oidc scope state params = do
-    req <- liftIO $ parseUrl endpoint `catch` I.rethrow
-    return $ getUri $ setQueryString query req
-  where
-    endpoint  = oidcAuthorizationServerUrl oidc
-    query     = requireds ++ state' ++ params
-    requireds =
-        [ ("response_type", Just "id_token")
-        , ("response_mode", Just "form_post")
-        , ("client_id",     Just $ oidcClientId oidc)
-        , ("redirect_uri",  Just $ oidcRedirectUri oidc)
-        , ("scope",         Just . B.pack . unwords . nub . map unpack $ openId:scope)
-        ]
-    state' =
-        case state of
+    -> ReaderT OIDC m URI
+getAuthenticationRequestUrl scope state params = do
+    oidc <- ask
+
+    let state' =
+          case state of
             Just _  -> [("state", state)]
             Nothing -> []
+    let endpoint = oidcAuthorizationServerUrl oidc
+    let requireds =
+          [ ("response_type", Just "id_token")
+          , ("response_mode", Just "form_post")
+          , ("client_id",     Just $ oidcClientId oidc)
+          , ("redirect_uri",  Just $ oidcRedirectUri oidc)
+          , ("scope",         Just . B.pack . unwords . nub . map unpack $ openId:scope)
+          ]
+    let query     = requireds ++ state' ++ params
+
+    req <- liftIO $ parseUrl endpoint `catch` I.rethrow
+    return $ getUri $ setQueryString query req

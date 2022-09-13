@@ -36,6 +36,7 @@ import           Network.HTTP.Client                (Manager, Request (..),
                                                      setQueryString,
                                                      urlEncodedBody)
 import           Network.URI                        (URI)
+import           Control.Monad.Reader               (ReaderT(..), ask, lift)
 
 import           Prelude                            hiding (exp)
 
@@ -55,33 +56,34 @@ import           Web.OIDC.Client.Types              (Code, Nonce,
 prepareAuthenticationRequestUrl
     :: (MonadThrow m, MonadCatch m)
     => SessionStore m
-    -> OIDC
     -> Scope            -- ^ used to specify what are privileges requested for tokens. (use `ScopeValue`)
     -> Parameters       -- ^ Optional parameters
-    -> m URI
-prepareAuthenticationRequestUrl store oidc scope params = do
-    state <- sessionStoreGenerate store
-    nonce' <- sessionStoreGenerate store
-    sessionStoreSave store state nonce'
-    getAuthenticationRequestUrl oidc scope (Just state) $ params ++ [("nonce", Just nonce')]
+    -> ReaderT OIDC m URI
+prepareAuthenticationRequestUrl store scope params = do
+    (state, nonce') <- lift $ do
+      state <- sessionStoreGenerate store
+      nonce' <- sessionStoreGenerate store
+      sessionStoreSave store state nonce'
+      pure (state,nonce')
+
+    getAuthenticationRequestUrl scope (Just state) $ params ++ [("nonce", Just nonce')]
 
 -- | Get and validate access token and with code and state stored in the 'SessionStore'.
 --   Then deletes session info by 'sessionStoreDelete'.
 getValidTokens
     :: (MonadThrow m, MonadCatch m, MonadIO m, FromJSON a)
     => SessionStore m
-    -> OIDC
     -> Manager
     -> State
     -> Code
-    -> m (Tokens a)
-getValidTokens store oidc mgr stateFromIdP code = do
-    (state, savedNonce) <- sessionStoreGet store
+    -> ReaderT OIDC m (Tokens a)
+getValidTokens store mgr stateFromIdP code = do
+    (state, savedNonce) <- lift (sessionStoreGet store)
     if state == Just stateFromIdP
       then do
           when (isNothing savedNonce) $ throwM $ ValidationException "Nonce is not saved!"
-          result <- liftIO $ requestTokens oidc savedNonce code mgr
-          sessionStoreDelete store
+          result <- requestTokens savedNonce code mgr
+          lift (sessionStoreDelete store)
           return result
       else throwM $ ValidationException $ "Inconsistent state: " <> decodeUtf8With lenientDecode stateFromIdP
 
@@ -89,27 +91,28 @@ getValidTokens store oidc mgr stateFromIdP code = do
 {-# WARNING getAuthenticationRequestUrl "This function doesn't manage state and nonce. Use prepareAuthenticationRequestUrl only unless your IdP doesn't support state and/or nonce." #-}
 getAuthenticationRequestUrl
     :: (MonadThrow m, MonadCatch m)
-    => OIDC
-    -> Scope            -- ^ used to specify what are privileges requested for tokens. (use `ScopeValue`)
+    => Scope            -- ^ used to specify what are privileges requested for tokens. (use `ScopeValue`)
     -> Maybe State      -- ^ used for CSRF mitigation. (recommended parameter)
     -> Parameters       -- ^ Optional parameters
-    -> m URI
-getAuthenticationRequestUrl oidc scope state params = do
-    req <- parseUrl endpoint `catch` I.rethrow
-    return $ getUri $ setQueryString query req
-  where
-    endpoint  = oidcAuthorizationServerUrl oidc
-    query     = requireds ++ state' ++ params
-    requireds =
-        [ ("response_type", Just "code")
-        , ("client_id",     Just $ oidcClientId oidc)
-        , ("redirect_uri",  Just $ oidcRedirectUri oidc)
-        , ("scope",         Just $ B.pack . unwords . nub . map unpack $ openId:scope)
-        ]
-    state' =
-        case state of
+    -> ReaderT OIDC m URI
+getAuthenticationRequestUrl scope state params = do
+    oidc <- ask
+
+    let endpoint  = oidcAuthorizationServerUrl oidc
+    let state' =
+          case state of
             Just _  -> [("state", state)]
             Nothing -> []
+    let requireds =
+          [ ("response_type", Just "code")
+          , ("client_id",     Just $ oidcClientId oidc)
+          , ("redirect_uri",  Just $ oidcRedirectUri oidc)
+          , ("scope",         Just $ B.pack . unwords . nub . map unpack $ openId:scope)
+          ]
+    let query     = requireds ++ state' ++ params
+
+    req <- parseUrl endpoint `catch` I.rethrow
+    return $ getUri $ setQueryString query req
 
 -- TODO: error response
 
@@ -120,36 +123,48 @@ getAuthenticationRequestUrl oidc scope state params = do
 --
 -- If a HTTP error has occurred or a tokens validation has failed, this function throws `OpenIdException`.
 {-# WARNING requestTokens "This function doesn't manage state and nonce. Use getValidTokens only unless your IdP doesn't support state and/or nonce." #-}
-requestTokens :: FromJSON a => OIDC -> Maybe Nonce -> Code -> Manager -> IO (Tokens a)
-requestTokens oidc savedNonce code manager = do
-    json <- getTokensJson `catch` I.rethrow
-    case eitherDecode json of
-        Right ts -> validate oidc savedNonce ts
-        Left err -> throwM . JsonException $ pack err
-  where
-    getTokensJson = do
-        req <- parseUrl endpoint
-        let req' = urlEncodedBody body $ req { method = "POST" }
-        res <- httpLbs req' manager
-        return $ responseBody res
-    endpoint = oidcTokenEndpoint oidc
-    cid      = oidcClientId oidc
-    sec      = oidcClientSecret oidc
-    redirect = oidcRedirectUri oidc
-    body     =
-        [ ("grant_type",    "authorization_code")
-        , ("code",          code)
-        , ("client_id",     cid)
-        , ("client_secret", sec)
-        , ("redirect_uri",  redirect)
-        ]
+requestTokens
+    :: (MonadThrow m, MonadIO m, FromJSON a)
+    => Maybe Nonce
+    -> Code
+    -> Manager
+    -> ReaderT OIDC m (Tokens a)
+requestTokens savedNonce code manager = do
+    oidc <- ask
 
-validate :: FromJSON a => OIDC -> Maybe Nonce -> I.TokensResponse -> IO (Tokens a)
-validate oidc savedNonce tres = do
+    let endpoint = oidcTokenEndpoint oidc
+    let cid      = oidcClientId oidc
+    let sec      = oidcClientSecret oidc
+    let redirect = oidcRedirectUri oidc
+    let body     =
+          [ ("grant_type",    "authorization_code")
+          , ("code",          code)
+          , ("client_id",     cid)
+          , ("client_secret", sec)
+          , ("redirect_uri",  redirect)
+          ]
+    let getTokensJson = do
+          req <- parseUrl endpoint
+          let req' = urlEncodedBody body $ req { method = "POST" }
+          res <- httpLbs req' manager
+          return $ responseBody res
+
+    json <- liftIO (getTokensJson `catch` I.rethrow)
+    case eitherDecode json of
+        Right ts -> validate savedNonce ts
+        Left err -> throwM . JsonException $ pack err
+
+validate
+    :: (MonadThrow m, MonadIO m, FromJSON a)
+    => Maybe Nonce
+    -> I.TokensResponse
+    -> ReaderT OIDC m (Tokens a)
+validate savedNonce tres = do
+    oidc <- ask
     let jwt' = I.idToken tres
     claims' <- validateIdToken oidc jwt'
     now <- getCurrentIntDate
-    validateClaims
+    liftIO $ validateClaims
         (P.issuer . P.configuration . oidcProvider $ oidc)
         (decodeUtf8With lenientDecode . oidcClientId $ oidc)
         now
@@ -164,7 +179,13 @@ validate oidc savedNonce tres = do
         , refreshToken = I.refreshToken tres
         }
 
-validateClaims :: Text -> Text -> Jwt.IntDate -> Maybe Nonce -> IdTokenClaims a -> IO ()
+validateClaims
+    :: Text
+    -> Text
+    -> Jwt.IntDate
+    -> Maybe Nonce
+    -> IdTokenClaims a
+    -> IO ()
 validateClaims issuer' clientId' now savedNonce claims' = do
     let iss' = iss claims'
     unless (iss' == issuer')
@@ -180,5 +201,5 @@ validateClaims issuer' clientId' now savedNonce claims' = do
     unless (nonce claims' == savedNonce)
         $ throwM $ ValidationException "Inconsistent nonce"
 
-getCurrentIntDate :: IO Jwt.IntDate
-getCurrentIntDate = Jwt.IntDate <$> getPOSIXTime
+getCurrentIntDate :: MonadIO m => m Jwt.IntDate
+getCurrentIntDate = Jwt.IntDate <$> liftIO getPOSIXTime
