@@ -1,14 +1,20 @@
-resolver: lts-18.28
+resolver: lts-19.16
 
 packages:
   - '.'
 
 # Dependency packages to be pulled from upstream that are not in the resolver
 extra-deps:
-- scotty-cookie-0.1.0.3@sha256:3ff1df13a5acba8ba170a5ac22b3ac6a2c227791292536ce1ebfc41038f58fc9
+- jose-jwt-0.9.4@sha256:6db77f81cfcf81cf7faf8a4dc4b2110c1603dbb94249d49d069a17b4897e9d69,3560
+- scotty-cookie-0.1.0.3@sha256:3ff1df13a5acba8ba170a5ac22b3ac6a2c227791292536ce1ebfc41038f58fc9,1204
 
 # Override default flag values for local packages and extra-deps
 flags: {}
 
 # Extra package databases containing global packages
 extra-package-dbs: []
+
+nix:
+  packages:
+  - ghc
+  - zlib

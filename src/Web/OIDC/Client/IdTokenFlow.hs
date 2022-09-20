@@ -61,19 +61,14 @@ getValidIdTokenClaims
     -> m B.ByteString
     -> m (IdTokenClaims a)
 getValidIdTokenClaims store oidc stateFromIdP getIdToken = do
-    (state, savedNonce) <- sessionStoreGet store
-    if state == Just stateFromIdP
-      then do
-          when (isNothing savedNonce) $ liftIO $ throwIO $ ValidationException "Nonce is not saved!"
-          jwt <- Jwt.Jwt <$> getIdToken
-          sessionStoreDelete store
-          idToken <- liftIO $ validateIdToken oidc jwt
-          when (fromMaybe True $ (/=) <$> savedNonce <*> nonce idToken)
-                $ liftIO
-                $ throwIO
-                $ ValidationException "Nonce does not match request."
-          pure idToken
-      else liftIO $ throwIO $ ValidationException $ "Inconsistent state: " <> decodeUtf8With lenientDecode stateFromIdP
+    msavedNonce <- sessionStoreGet store stateFromIdP
+    savedNonce <- maybe (liftIO $ throwIO UnknownState) pure msavedNonce
+    jwt <- Jwt.Jwt <$> getIdToken
+    sessionStoreDelete store
+    idToken <- liftIO $ validateIdToken oidc jwt
+    nonce' <- maybe (liftIO $ throwIO MissingNonceInResponse) pure (nonce idToken)
+    when (nonce' /= savedNonce) $ liftIO $ throwIO MismatchedNonces
+    pure idToken
 
 -- | Make URL for Authorization Request.
 {-# WARNING getAuthenticationRequestUrl "This function doesn't manage state and nonce. Use prepareAuthenticationRequestUrl only unless your IdP doesn't support state and/or nonce." #-}
