@@ -1,8 +1,7 @@
 # ChangeLog
 
 ## [0.7.0.0]
-
-- Lookup by state with sessionStoreGet
+- Lookup by state with sessionStoreGet ([#57](https://github.com/krdlab/haskell-oidc-client/pull/57))
 
 ## [0.6.1.0]
 - Remove max version cap on bytestring and min >= 0.11 ([#54](https://github.com/krdlab/haskell-oidc-client/pull/54))
