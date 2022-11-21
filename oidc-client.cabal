@@ -1,5 +1,5 @@
 name:               oidc-client
-version:            0.7.0.0
+version:            0.7.0.1
 synopsis:           OpenID Connect 1.0 library for RP
 homepage:           https://github.com/krdlab/haskell-oidc-client
 stability:          experimental

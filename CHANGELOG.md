@@ -1,5 +1,8 @@
 # ChangeLog
 
+## [0.7.0.1]
+- bump the text bound #59 ([#59](https://github.com/krdlab/haskell-oidc-client/pull/59))
+
 ## [0.7.0.0]
 - Lookup by state with sessionStoreGet ([#57](https://github.com/krdlab/haskell-oidc-client/pull/57))
 
