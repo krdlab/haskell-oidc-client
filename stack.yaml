@@ -7,6 +7,7 @@ packages:
 extra-deps:
 - jose-jwt-0.9.4@sha256:6cb863760068a57ebf6dcc6efc6463162e71f932fe1134a69c9c0baa5d6d13f6,3692
 - scotty-cookie-0.1.0.3@sha256:3ff1df13a5acba8ba170a5ac22b3ac6a2c227791292536ce1ebfc41038f58fc9,1204
+- crypton-0.33@sha256:5e92f29b9b7104d91fcdda1dec9400c9ad1f1791c231cc41ceebd783fb517dee,18202
 
 # Override default flag values for local packages and extra-deps
 flags: {}
