@@ -1,5 +1,8 @@
 # ChangeLog
 
+## [0.8.0.0]
+- Switch to crypton ([#60](https://github.com/krdlab/haskell-oidc-client/pull/60))
+
 ## [0.7.0.1]
 - bump the text bound #59 ([#59](https://github.com/krdlab/haskell-oidc-client/pull/59))
 
