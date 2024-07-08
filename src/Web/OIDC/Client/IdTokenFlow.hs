@@ -64,7 +64,7 @@ getValidIdTokenClaims store oidc stateFromIdP getIdToken = do
     msavedNonce <- sessionStoreGet store stateFromIdP
     savedNonce <- maybe (liftIO $ throwIO UnknownState) pure msavedNonce
     jwt <- Jwt.Jwt <$> getIdToken
-    sessionStoreDelete store
+    sessionStoreDelete store stateFromIdP
     idToken <- liftIO $ validateIdToken oidc jwt
     nonce' <- maybe (liftIO $ throwIO MissingNonceInResponse) pure (nonce idToken)
     when (nonce' /= savedNonce) $ liftIO $ throwIO MismatchedNonces
