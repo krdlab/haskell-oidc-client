@@ -24,7 +24,7 @@ import           Jose.Jwk              (Jwk)
 import           Web.OIDC.Client.Types (IssuerLocation, ScopeValue)
 
 -- | An OpenID Provider information
-data Provider = Provider { configuration :: Configuration, jwkSet :: [Jwk] } deriving (Show)
+data Provider = Provider { configuration :: Configuration, jwkSet :: [Jwk] } deriving (Eq, Show)
 
 data JwsAlgJson = JwsAlgJson { getJwsAlg :: JwsAlg } | Unsupported Text deriving (Show, Eq)
 
