@@ -10,6 +10,7 @@ module Web.OIDC.Client.CodeFlow
     , getValidTokens
     , prepareAuthenticationRequestUrl
     , requestTokens
+    , validate
 
     -- * For testing
     , validateClaims
