@@ -26,7 +26,7 @@ data OIDC = OIDC
     , oidcClientSecret           :: ByteString
     , oidcRedirectUri            :: ByteString
     , oidcProvider               :: Provider
-    } deriving Show
+    } deriving (Eq, Show)
 
 def :: OIDC
 def = OIDC
