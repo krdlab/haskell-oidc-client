@@ -70,6 +70,6 @@ data SessionStore m = SessionStore
     , sessionStoreSave :: State -> Nonce -> m ()
     , sessionStoreGet :: State -> m (Maybe Nonce)
     -- ^ Returns 'Nothing' if 'State' is unknown
-    , sessionStoreDelete :: m ()
+    , sessionStoreDelete :: State -> m ()
     -- ^ Should delete at least nonce
     }

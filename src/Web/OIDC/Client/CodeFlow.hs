@@ -79,7 +79,7 @@ getValidTokens store oidc mgr stateFromIdP code = do
     savedNonce <- sessionStoreGet store stateFromIdP
     when (isNothing savedNonce) $ throwM UnknownState
     result <- liftIO $ requestTokens oidc savedNonce code mgr
-    sessionStoreDelete store
+    sessionStoreDelete store stateFromIdP
     return result
 
 -- | Make URL for Authorization Request.

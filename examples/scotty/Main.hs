@@ -167,7 +167,7 @@ run' = do
             { sessionStoreGenerate = genBytes cprg
             , sessionStoreSave     = saveState ssm sid
             , sessionStoreGet      = getStateBy ssm sid
-            , sessionStoreDelete   = deleteState ssm sid
+            , sessionStoreDelete   = const $ deleteState ssm sid 
             }
 
     blaze = html . renderHtml
