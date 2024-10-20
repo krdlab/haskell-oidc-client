@@ -2,17 +2,18 @@ let
   config   = { allowUnfree = true; };
   overlays = [
     (newPkgs: oldPkgs: rec {
-
       haskellPackages = oldPkgs.haskellPackages.override {
         overrides = haskellPackagesNew: _: {
-          oidc-client = haskellPackagesNew.callCabal2nix "oidc-client" ./. { };
+          # disable tests because the discovery tests use the internet, which
+          # fails in the sandbox
+          oidc-client = oldPkgs.haskell.lib.dontCheck (haskellPackagesNew.callCabal2nix "oidc-client" ./. { });
         };
       };
 
     })
   ];
 
-  nixpkgs = import ./nix/21_05.nix;
+  nixpkgs = import ./nix/24_05.nix;
   pkgs    = import nixpkgs { inherit config overlays; };
 
   oidc-client-shell = pkgs.haskellPackages.shellFor {
