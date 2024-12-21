@@ -7,6 +7,7 @@
 module Web.OIDC.Client.Discovery
     (
       discover
+    , cachedDiscover
 
     -- * OpenID Provider Issuers
     , google
@@ -19,6 +20,7 @@ module Web.OIDC.Client.Discovery
     , generateDiscoveryUrl
     ) where
 
+import           Control.Concurrent.MVar            (newMVar, putMVar, takeMVar)
 import           Control.Monad.Catch                (catch, throwM)
 import           Data.Aeson                         (eitherDecode)
 import           Data.ByteString                    (append, isSuffixOf)
@@ -26,6 +28,7 @@ import           Data.Foldable                      (foldMap)
 import           Data.Monoid                        ((<>), First (..), getFirst)
 import           Data.Text                          (pack, unpack)
 import           Data.Text.Encoding                 (decodeLatin1)
+import           Data.Time                          (addUTCTime, getCurrentTime)
 import           Data.Time.Format                   (defaultTimeLocale,
                                                      parseTimeM)
 import qualified Jose.Jwk                           as Jwk
@@ -91,6 +94,38 @@ discover location manager = do
         return (responseBody res, getValidity res)
 
     jwks j = Jwk.keys <$> eitherDecode j
+
+-- | An alternative to 'discover' suitable for cases when the 'Provider' will be
+-- used over a long period of time to serve many requests. Returns an IO action
+-- that fetches the latest cached 'Provider' or refreshes the cache first if it's
+-- too old. The returned 'Provider' is only checked for freshness when fetched,
+-- so don't store it for later use. The cache is refreshed according to the
+-- 'Provider' 'validUntil' field, or every hour if 'validUntil' is 'Nothing'.
+cachedDiscover
+    :: IssuerLocation
+    -> Manager
+    -> IO (IO Provider)
+cachedDiscover location manager = do
+    initialTime <- getCurrentTime
+    cache <- newMVar =<< discoverWithValidityFallback initialTime
+    pure $ do
+        (cachedProvider, cachedValidUntil) <- takeMVar cache
+        currentTime <- getCurrentTime
+        (provider, newValidUntil) <-
+            if currentTime > cachedValidUntil
+            then discoverWithValidityFallback currentTime
+            else pure (cachedProvider, cachedValidUntil)
+        putMVar cache (provider, newValidUntil)
+        pure provider
+  where
+    discoverWithValidityFallback time = do
+        provider <- discover location manager
+        pure (provider, validUntilWithFallback time provider)
+
+    validUntilWithFallback now provider =
+        case validUntil provider of
+            Just t -> t
+            Nothing -> addUTCTime 3600 now
 
 generateDiscoveryUrl :: IssuerLocation -> IO Request
 generateDiscoveryUrl location = do
