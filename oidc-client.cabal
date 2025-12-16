@@ -17,7 +17,14 @@ description:
     Examples: <https://github.com/krdlab/haskell-oidc-client/tree/master/examples>
 extra-source-files: README.md
 extra-doc-files:    CHANGELOG.md
-tested-with:        GHC ==9.10.1 || ==9.8.2 || ==9.6.6 || ==9.4.8 || ==9.2.8 || ==9.0.2 || ==8.10.7
+tested-with: GHC ==9.12.2
+              || ==9.10.3
+              || ==9.8.4
+              || ==9.6.7
+              || ==9.4.8
+              || ==9.2.8
+              || ==9.0.2
+              || ==8.10.7
 
 source-repository head
     type: git
