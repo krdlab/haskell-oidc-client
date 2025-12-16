@@ -17,11 +17,7 @@ import           Control.Monad.IO.Class             (MonadIO, liftIO)
 import           Data.Aeson                         (FromJSON)
 import qualified Data.ByteString.Char8              as B
 import           Data.List                          (nub)
-import           Data.Maybe                         (isNothing, fromMaybe)
-import           Data.Monoid                        ((<>))
 import           Data.Text                          (unpack)
-import           Data.Text.Encoding                 (decodeUtf8With)
-import           Data.Text.Encoding.Error           (lenientDecode)
 import qualified Jose.Jwt                           as Jwt
 import           Network.HTTP.Client                (getUri, setQueryString)
 import           Network.URI                        (URI)

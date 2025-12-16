@@ -1,15 +1,14 @@
-{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE DeriveGeneric     #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards   #-}
-{-# LANGUAGE DeriveGeneric   #-}
 
 module Main where
 
 import           Control.Monad.IO.Class               (liftIO)
 import           Control.Monad.Reader                 (ReaderT, ask, lift,
                                                        runReaderT)
-import           Crypto.Random.AESCtr                 (AESRNG, makeSystem)
-import           Crypto.Random.API                    (cprgGenBytes)
+import           Crypto.Random                        (SystemDRG, getSystemDRG,
+                                                       randomBytesGenerate)
 import           Data.Aeson                           (FromJSON)
 import           Data.ByteString                      (ByteString)
 import           Data.ByteString.Base64.URL           (encode)
@@ -20,13 +19,12 @@ import           Data.IORef                           (IORef,
 import           Data.List                            as L
 import           Data.Map                             (Map)
 import qualified Data.Map                             as M
-import           Data.Maybe                           (Maybe (..), fromMaybe)
-import           Data.Monoid                          ((<>))
-import           Data.Text                            as T
+import           Data.Maybe                           (fromMaybe)
+import qualified Data.Text                            as T
 import           Data.Text.Encoding                   (decodeUtf8)
-import           Data.Text.Lazy                       as TL
+import qualified Data.Text.Lazy                       as TL
 import           Data.Tuple                           (swap)
-import           GHC.Generics (Generic)
+import           GHC.Generics                         (Generic)
 import           Network.HTTP.Client                  (Manager, newManager)
 import           Network.HTTP.Client.TLS              (tlsManagerSettings)
 import           Network.HTTP.Types                   (badRequest400,
@@ -35,27 +33,30 @@ import           Network.Wai.Middleware.RequestLogger (logStdoutDev)
 import           System.Environment                   (getEnv)
 import           Text.Blaze.Html                      (Html)
 import           Text.Blaze.Html.Renderer.Text        (renderHtml)
-import           Text.Blaze.Html5                     ((!))
 import qualified Text.Blaze.Html5                     as H
+import           Text.Blaze.Html5                     ((!))
 import qualified Text.Blaze.Html5.Attributes          as A
 import qualified Web.OIDC.Client                      as O
+import qualified Web.OIDC.Client.Discovery.Issuers    as Issuers
 import           Web.Scotty.Cookie                    (getCookie,
                                                        setSimpleCookie)
 import           Web.Scotty.Trans                     (ScottyT, get, html,
-                                                       middleware, param, post,
-                                                       redirect, rescue,
-                                                       scottyT, status, text)
+                                                       middleware, post,
+                                                       queryParam,
+                                                       queryParamMaybe,
+                                                       redirect, scottyT,
+                                                       status, text)
 
 type SessionStateMap = Map T.Text (O.State, O.Nonce)
 
 data AuthServerEnv = AuthServerEnv
     { oidc :: O.OIDC
-    , cprg :: IORef AESRNG
+    , sdrg :: IORef SystemDRG
     , ssm  :: IORef SessionStateMap
     , mgr  :: Manager
     }
 
-type AuthServer a = ScottyT TL.Text (ReaderT AuthServerEnv IO) a
+type AuthServer a = ScottyT (ReaderT AuthServerEnv IO) a
 
 data ProfileClaims = ProfileClaims
     { name    :: T.Text
@@ -74,13 +75,13 @@ main = do
     let port = getPort baseUrl
         redirectUri = baseUrl <> "/login/cb"
 
-    cprg <- makeSystem >>= newIORef
+    sdrg <- getSystemDRG >>= newIORef
     ssm  <- newIORef M.empty
     mgr  <- newManager tlsManagerSettings
-    prov <- O.discover "https://accounts.google.com" mgr
+    prov <- O.discover Issuers.google mgr
     let oidc = O.setCredentials clientId clientSecret redirectUri $ O.newOIDC prov
 
-    run port oidc cprg ssm mgr
+    run port oidc sdrg ssm mgr
 
 getPort :: ByteString -> Int
 getPort bs = fromMaybe 3000 port
@@ -91,10 +92,10 @@ getPort bs = fromMaybe 3000 port
         xs  -> let p = (!! 0) . L.reverse $ xs
                     in fst <$> B.readInt p
 
-run :: Int -> O.OIDC -> IORef AESRNG -> IORef SessionStateMap -> Manager -> IO ()
-run port oidc cprg ssm mgr = scottyT port runReader run'
+run :: Int -> O.OIDC -> IORef SystemDRG -> IORef SessionStateMap -> Manager -> IO ()
+run port oidc sdrg ssm mgr = scottyT port runReader run'
   where
-    runReader a = runReaderT a (AuthServerEnv oidc cprg ssm mgr)
+    runReader a = runReaderT a (AuthServerEnv oidc sdrg ssm mgr)
 
 run' :: AuthServer ()
 run' = do
@@ -106,14 +107,14 @@ run' = do
     post "/login" $ do
         AuthServerEnv{..} <- lift ask
 
-        sid <- genSessionId cprg
-        let store = sessionStoreFromSession cprg ssm sid
+        sid <- genSessionId sdrg
+        let store = sessionStoreFromSession sdrg ssm sid
         loc <- liftIO $ O.prepareAuthenticationRequestUrl store oidc [O.email, O.profile] []
         setSimpleCookie cookieName sid
         redirect . TL.pack . show $ loc
 
     get "/login/cb" $ do
-        err <- param' "error"
+        err <- queryParamMaybe "error"
         case err of
             Just e  -> status401 e
             Nothing -> getCookie cookieName >>= doCallback
@@ -130,9 +131,9 @@ run' = do
         case cookie of
             Just sid -> do
                 AuthServerEnv{..} <- lift ask
-                let store = sessionStoreFromSession cprg ssm sid
-                state <- param "state"
-                code  <- param "code"
+                let store = sessionStoreFromSession sdrg ssm sid
+                state <- queryParam "state"
+                code  <- queryParam "code"
                 tokens <- liftIO $ O.getValidTokens store oidc mgr state code
                 blaze $ htmlResult tokens
             Nothing  -> status400 "cookie not found"
@@ -149,11 +150,11 @@ run' = do
           H.p $ do
             H.toHtml ("Email: " :: T.Text)
             H.toHtml (email profile)
-          H.p $ H.img ! (A.src $ H.textValue $ picture profile)
+          H.p $ H.img ! A.src (H.textValue $ picture profile)
 
-    gen cprg                   = encode <$> atomicModifyIORef' cprg (swap . cprgGenBytes 64)
-    genSessionId cprg          = liftIO $ decodeUtf8 <$> gen cprg
-    genBytes cprg              = liftIO $ gen cprg
+    gen sdrg                   = encode <$> atomicModifyIORef' sdrg (swap . randomBytesGenerate 64)
+    genSessionId sdrg          = liftIO $ decodeUtf8 <$> gen sdrg
+    genBytes sdrg              = liftIO $ gen sdrg
     saveState ssm sid st nonce = liftIO $ atomicModifyIORef' ssm $ \m -> (M.insert sid (st, nonce) m, ())
     getStateBy ssm sid _st     = liftIO $ do
         m <- M.lookup sid <$> readIORef ssm
@@ -162,15 +163,14 @@ run' = do
             _               -> Nothing
     deleteState ssm sid  = liftIO $ atomicModifyIORef' ssm $ \m -> (M.delete sid m, ())
 
-    sessionStoreFromSession cprg ssm sid =
+    sessionStoreFromSession sdrg ssm sid =
         O.SessionStore
-            { sessionStoreGenerate = genBytes cprg
+            { sessionStoreGenerate = genBytes sdrg
             , sessionStoreSave     = saveState ssm sid
             , sessionStoreGet      = getStateBy ssm sid
-            , sessionStoreDelete   = const $ deleteState ssm sid 
+            , sessionStoreDelete   = const $ deleteState ssm sid
             }
 
     blaze = html . renderHtml
-    param' n = (Just <$> param n) `rescue` (\_ -> return Nothing)
     status400 m = status badRequest400   >> text m
     status401 m = status unauthorized401 >> text m

@@ -25,7 +25,6 @@ import           Data.Aeson                         (FromJSON, eitherDecode)
 import qualified Data.ByteString.Char8              as B
 import           Data.List                          (nub)
 import           Data.Maybe                         (isNothing)
-import           Data.Monoid                        ((<>))
 import           Data.Text                          (Text, pack, unpack)
 import           Data.Text.Encoding                 (decodeUtf8With)
 import           Data.Text.Encoding.Error           (lenientDecode)

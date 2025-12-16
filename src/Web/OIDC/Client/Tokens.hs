@@ -24,7 +24,6 @@ import           Data.Aeson                         (FromJSON (parseJSON),
 import           Data.ByteString                    (ByteString)
 import qualified Data.ByteString.Lazy.Char8         as BL
 import           Data.Either                        (partitionEithers)
-import           Data.Monoid                        ((<>))
 import           Data.Text                          (Text, pack)
 import           Data.Text.Encoding                 (encodeUtf8)
 import           GHC.Generics                       (Generic)

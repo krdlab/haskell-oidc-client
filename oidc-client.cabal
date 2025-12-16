@@ -1,3 +1,4 @@
+cabal-version:      2.2
 name:               oidc-client
 version:            0.8.0.0
 synopsis:           OpenID Connect 1.0 library for RP
@@ -10,17 +11,24 @@ maintainer:         Sho Kuroda <krdlab@gmail.com>
 copyright:          (c) 2015 Sho Kuroda
 category:           Web
 build-type:         Simple
-cabal-version:      >=1.10
 description:
     This package supports implementing of an OpenID Connect 1.0 Relying Party.
     .
     Examples: <https://github.com/krdlab/haskell-oidc-client/tree/master/examples>
-extra-source-files: CHANGELOG.md
-                  , README.md
+extra-source-files: README.md
+extra-doc-files:    CHANGELOG.md
+tested-with: GHC ==9.12.2
+              || ==9.10.3
+              || ==9.8.4
+              || ==9.6.7
+              || ==9.4.8
+              || ==9.2.8
+              || ==9.0.2
+              || ==8.10.7
 
 source-repository head
     type: git
-    location: git://github.com/krdlab/haskell-oidc-client.git
+    location: https://github.com/krdlab/haskell-oidc-client.git
 
 flag network-uri
   default: True
@@ -28,10 +36,13 @@ flag network-uri
 flag build-examples
   default: False
 
+common warnings
+  ghc-options: -Wunused-packages -Wall
+
 library
+  import:              warnings
   hs-source-dirs:      src
   default-language:    Haskell2010
-  ghc-options:         -Wall
   exposed-modules:
       Web.OIDC.Client
     , Web.OIDC.Client.CodeFlow
@@ -49,25 +60,20 @@ library
     , bytestring        >=0.10
     , text              (>=1.2 && <1.3) || (>= 2.0 && < 2.2)
     , aeson             >=0.10
-    , scientific
-    , attoparsec        >=0.12
     , exceptions
     , http-client
-    , tls               >=1.3.2
-    , http-client-tls
     , jose-jwt          >=0.7
-    , crypton
     , time
   if flag(network-uri)
-    build-depends: network-uri >=2.6, network >=2.6
+    build-depends: network-uri >=2.6
   else
-    build-depends: network-uri <2.6, network <2.6
+    build-depends: network-uri <2.6
 
 test-suite oidc-client-spec
+  import:               warnings
   type:                 exitcode-stdio-1.0
   hs-source-dirs:       test, src
   default-language:     Haskell2010
-  ghc-options:          -Wall
   main-is:              Spec.hs
   other-modules:
       Spec.Client
@@ -95,38 +101,32 @@ test-suite oidc-client-spec
     , http-client
     , http-client-tls
     , aeson
-    , scientific
     , jose-jwt
-    , crypton
     , exceptions
     , time
     , network-uri
 
 executable scotty-example
+  import:           warnings
+  if !flag(build-examples)
+    buildable: False
   main-is:          Main.hs
   default-language: Haskell2010
   hs-source-dirs:   examples/scotty/
-  ghc-options:      -Wall
-  if flag(build-examples)
-    build-depends:
-        base                >=4.7 && <5
-      , oidc-client
-      , aeson
-      , bytestring
-      , text
-      , containers
-      , transformers
-      , mtl
-      , wai-extra
-      , scotty
-      , scotty-cookie
-      , blaze-html
-      , cprng-aes
-      , crypto-random
-      , base64-bytestring
-      , http-types
-      , http-client
-      , tls                 >=1.3.2
-      , http-client-tls
-  else
-    buildable: False
+  build-depends:
+      base                >=4.7 && <5
+    , oidc-client
+    , aeson
+    , bytestring
+    , text
+    , containers
+    , mtl
+    , wai-extra
+    , scotty ^>= 0.22
+    , blaze-html
+    , crypton >= 0.34 && < 1.1
+    , base64-bytestring
+    , http-types
+    , http-client
+    , http-client-tls
+
