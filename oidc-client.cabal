@@ -28,7 +28,7 @@ tested-with: GHC ==9.12.2
 
 source-repository head
     type: git
-    location: git://github.com/krdlab/haskell-oidc-client.git
+    location: https://github.com/krdlab/haskell-oidc-client.git
 
 flag network-uri
   default: True
