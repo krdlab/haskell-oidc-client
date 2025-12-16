@@ -20,9 +20,9 @@ import           Data.List                            as L
 import           Data.Map                             (Map)
 import qualified Data.Map                             as M
 import           Data.Maybe                           (fromMaybe)
-import           Data.Text                            as T
+import qualified Data.Text                            as T
 import           Data.Text.Encoding                   (decodeUtf8)
-import           Data.Text.Lazy                       as TL
+import qualified Data.Text.Lazy                       as TL
 import           Data.Tuple                           (swap)
 import           GHC.Generics                         (Generic)
 import           Network.HTTP.Client                  (Manager, newManager)

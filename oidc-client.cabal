@@ -124,7 +124,7 @@ executable scotty-example
     , wai-extra
     , scotty ^>= 0.22
     , blaze-html
-    , crypton ^>= 0.34
+    , crypton >= 0.34 && < 1.1
     , base64-bytestring
     , http-types
     , http-client
