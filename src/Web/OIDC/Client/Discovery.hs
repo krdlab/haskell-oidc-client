@@ -20,7 +20,7 @@ module Web.OIDC.Client.Discovery
     , generateDiscoveryUrl
     ) where
 
-import           Control.Concurrent.MVar            (newMVar, putMVar, takeMVar)
+import           Control.Concurrent.MVar            (modifyMVar, newMVar)
 import           Control.Monad.Catch                (catch, throwM)
 import           Data.Aeson                         (eitherDecode)
 import           Data.ByteString                    (append, isSuffixOf)
@@ -97,26 +97,29 @@ discover location manager = do
 
 -- | An alternative to 'discover' suitable for cases when the 'Provider' will be
 -- used over a long period of time to serve many requests. Returns an IO action
--- that fetches the latest cached 'Provider' or refreshes the cache first if it's
--- too old. The returned 'Provider' is only checked for freshness when fetched,
--- so don't store it for later use. The cache is refreshed according to the
--- 'Provider' 'validUntil' field, or every hour if 'validUntil' is 'Nothing'.
+-- that fetches the latest cached 'Provider', refreshing the cache first if
+-- it's too old (or empty, on first use). The returned 'Provider' is only
+-- checked for freshness when fetched, so don't store it for later use. The
+-- cache is refreshed according to the 'Provider' 'validUntil' field, or every
+-- hour if 'validUntil' is 'Nothing'.
+--
+-- Discovery is deferred to the first call of the returned action, so this
+-- function never throws. Failures during discovery propagate from the
+-- returned action and leave the cache untouched, so subsequent calls retry.
 cachedDiscover
     :: IssuerLocation
     -> Manager
     -> IO (IO Provider)
 cachedDiscover location manager = do
-    initialTime <- getCurrentTime
-    cache <- newMVar =<< discoverWithValidityFallback initialTime
-    pure $ do
-        (cachedProvider, cachedValidUntil) <- takeMVar cache
+    cache <- newMVar Nothing
+    pure $ modifyMVar cache $ \cached -> do
         currentTime <- getCurrentTime
-        (provider, newValidUntil) <-
-            if currentTime > cachedValidUntil
-            then discoverWithValidityFallback currentTime
-            else pure (cachedProvider, cachedValidUntil)
-        putMVar cache (provider, newValidUntil)
-        pure provider
+        case cached of
+            Just (provider, cachedValidUntil) | currentTime <= cachedValidUntil ->
+                pure (cached, provider)
+            _ -> do
+                fresh@(provider, _) <- discoverWithValidityFallback currentTime
+                pure (Just fresh, provider)
   where
     discoverWithValidityFallback time = do
         provider <- discover location manager
