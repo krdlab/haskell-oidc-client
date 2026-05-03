@@ -18,13 +18,18 @@ import           Data.Aeson.TH         (Options (..), defaultOptions,
                                         deriveFromJSON)
 import           Data.Aeson.Types      (camelTo2)
 import           Data.Text             (Text)
+import           Data.Time             (UTCTime)
 import           Jose.Jwa              (JwsAlg (..))
 import           Jose.Jwk              (Jwk)
 
 import           Web.OIDC.Client.Types (IssuerLocation, ScopeValue)
 
 -- | An OpenID Provider information
-data Provider = Provider { configuration :: Configuration, jwkSet :: [Jwk] } deriving (Eq, Show)
+data Provider = Provider
+    { configuration :: Configuration
+    , jwkSet :: [Jwk]
+    , validUntil :: Maybe UTCTime
+    } deriving (Eq, Show)
 
 data JwsAlgJson = JwsAlgJson { getJwsAlg :: JwsAlg } | Unsupported Text deriving (Show, Eq)
 
